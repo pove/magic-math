@@ -1,0 +1,88 @@
+export const LEVELS = [
+  {
+    floor: 1,
+    name: 'La Entrada del Castillo',
+    gradient: 'from-[#1a0533] via-[#2d1b69] to-[#0f0c29]',
+    decorations: ['🏰', '⭐', '🌙'],
+    particleColor: '#7c3aed',
+  },
+  {
+    floor: 2,
+    name: 'La Biblioteca Mágica',
+    gradient: 'from-[#3d1c00] via-[#6b3a2a] to-[#1a0e00]',
+    decorations: ['📚', '✨', '🕯️'],
+    particleColor: '#f59e0b',
+  },
+  {
+    floor: 3,
+    name: 'El Laboratorio de Pociones',
+    gradient: 'from-[#052e16] via-[#064e3b] to-[#0c1a4a]',
+    decorations: ['🧪', '⚗️', '🫧'],
+    particleColor: '#10b981',
+  },
+  {
+    floor: 4,
+    name: 'El Jardín Encantado',
+    gradient: 'from-[#020617] via-[#1e3a5f] to-[#0f172a]',
+    decorations: ['🌸', '🌿', '✨'],
+    particleColor: '#60a5fa',
+  },
+  {
+    floor: 5,
+    name: 'La Galería de los Retratos Vivientes',
+    gradient: 'from-[#3b0000] via-[#6b1c1c] to-[#1a0a2e]',
+    decorations: ['🖼️', '👁️', '✨'],
+    particleColor: '#ec4899',
+  },
+  {
+    floor: 6,
+    name: 'El Aula de Hechizos',
+    gradient: 'from-[#0c1445] via-[#1e3a8a] to-[#0f172a]',
+    decorations: ['📝', '⭐', '🪄'],
+    particleColor: '#3b82f6',
+  },
+  {
+    floor: 7,
+    name: 'La Torre del Reloj',
+    gradient: 'from-[#1c1c1c] via-[#374151] to-[#1c1405]',
+    decorations: ['⚙️', '🕰️', '✨'],
+    particleColor: '#d97706',
+  },
+  {
+    floor: 8,
+    name: 'La Cripta de los Sabios',
+    gradient: 'from-[#000000] via-[#1a0533] to-[#0d0d0d]',
+    decorations: ['📜', '🔮', '💀'],
+    particleColor: '#8b5cf6',
+  },
+  {
+    floor: 9,
+    name: 'El Observatorio',
+    gradient: 'from-[#000000] via-[#0c1a4a] to-[#001233]',
+    decorations: ['🔭', '🪐', '⭐'],
+    particleColor: '#06b6d4',
+  },
+  {
+    floor: 10,
+    name: 'La Sala del Consejo',
+    gradient: 'from-[#1c0a00] via-[#78350f] to-[#3b0000]',
+    decorations: ['👑', '🪄', '✨'],
+    particleColor: '#f59e0b',
+  },
+  {
+    floor: 11,
+    name: 'El Puente de las Nubes',
+    gradient: 'from-[#bfdbfe] via-[#ede9fe] to-[#ffffff]',
+    decorations: ['☁️', '🌈', '⭐'],
+    particleColor: '#a78bfa',
+  },
+  {
+    floor: 12,
+    name: 'La Torre de la Varita Encantada',
+    gradient: 'from-[#000000] via-[#1c1405] to-[#0d0d0d]',
+    decorations: ['🪄', '⚡', '👑'],
+    particleColor: '#fbbf24',
+  },
+]
+
+export const getLevelData = (floor) => LEVELS.find((l) => l.floor === floor) || LEVELS[0]

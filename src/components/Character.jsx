@@ -1,111 +1,19 @@
-import { motion } from 'framer-motion'
+import { useEffect, useRef } from 'react'
+import { gsap } from 'gsap'
 import { getSkinById } from '../data/skins'
 
-const SKIN_TONE = '#f9c584'
-const SKIN_DARK = '#e8a96b'
+const SKIN_LIGHT = '#fddba8'
+const SKIN_MID   = '#f9c584'
+const SKIN_DARK  = '#e8a96b'
 
-function ShoesLayer({ skinId, gender }) {
-  const skin = skinId ? getSkinById(skinId) : null
-  const c1 = skin?.primaryColor || '#ffffff'
-  const c2 = skin?.secondaryColor || '#94a3b8'
-  const v = skin?.shapeVariant || 1
-  if (v === 2) return (
-    <g>
-      <ellipse cx="72" cy="322" rx="22" ry="10" fill={c1} />
-      <ellipse cx="128" cy="322" rx="22" ry="10" fill={c1} />
-      <rect x="55" y="305" width="34" height="18" rx="6" fill={c2} />
-      <rect x="111" y="305" width="34" height="18" rx="6" fill={c2} />
-    </g>
-  )
-  if (v === 3) return (
-    <g>
-      <ellipse cx="72" cy="322" rx="22" ry="10" fill={c1} />
-      <ellipse cx="128" cy="322" rx="22" ry="10" fill={c1} />
-      <rect x="55" y="302" width="34" height="22" rx="4" fill={c2} />
-      <rect x="111" y="302" width="34" height="22" rx="4" fill={c2} />
-    </g>
-  )
-  if (v === 4) return (
-    <g>
-      <ellipse cx="72" cy="322" rx="24" ry="11" fill={c1} />
-      <ellipse cx="128" cy="322" rx="24" ry="11" fill={c1} />
-      <rect x="54" y="306" width="36" height="17" rx="8" fill={c2} />
-      <rect x="110" y="306" width="36" height="17" rx="8" fill={c2} />
-      <circle cx="72" cy="310" r="3" fill={c1} opacity="0.6" />
-      <circle cx="128" cy="310" r="3" fill={c1} opacity="0.6" />
-    </g>
-  )
-  return (
-    <g>
-      <ellipse cx="72" cy="322" rx="22" ry="10" fill={c1} />
-      <ellipse cx="128" cy="322" rx="22" ry="10" fill={c1} />
-      <rect x="55" y="308" width="34" height="16" rx="8" fill={c2} />
-      <rect x="111" y="308" width="34" height="16" rx="8" fill={c2} />
-    </g>
-  )
-}
+let _counter = 0
 
-function BottomLayer({ skinId, gender }) {
-  const skin = skinId ? getSkinById(skinId) : null
-  const c1 = skin?.primaryColor || (gender === 'girl' ? '#4b5563' : '#1e40af')
-  const c2 = skin?.secondaryColor || '#93c5fd'
-  const isSkirt = gender === 'girl' && (!skin || skin.shapeVariant <= 2)
-  if (isSkirt) return (
-    <g>
-      <path d="M 68 230 L 58 320 L 92 320 L 100 270 L 108 320 L 142 320 L 132 230 Z" fill={c1} />
-      <path d="M 65 240 Q 100 255 135 240 L 132 230 L 68 230 Z" fill={c2} opacity="0.5" />
-    </g>
-  )
-  return (
-    <g>
-      <rect x="67" y="228" width="66" height="92" rx="5" fill={c1} />
-      <rect x="67" y="228" width="30" height="92" rx="5" fill={c1} />
-      <rect x="103" y="228" width="30" height="92" rx="5" fill={c1} />
-      <line x1="100" y1="228" x2="100" y2="320" stroke={c2} strokeWidth="2" opacity="0.4" />
-    </g>
-  )
-}
-
-function TopLayer({ skinId, gender }) {
-  const skin = skinId ? getSkinById(skinId) : null
-  const c1 = skin?.primaryColor || (gender === 'boy' ? '#1d4ed8' : '#ec4899')
-  const c2 = skin?.secondaryColor || '#93c5fd'
-  const v = skin?.shapeVariant || 1
-  if (v === 2) return (
-    <g>
-      <path d="M 60 175 Q 50 180 48 230 L 152 230 Q 150 180 140 175 L 120 165 L 80 165 Z" fill={c1} />
-      <path d="M 80 165 Q 100 175 120 165" stroke={c2} strokeWidth="3" fill="none" />
-      <rect x="48" y="195" width="18" height="35" rx="6" fill={c1} />
-      <rect x="134" y="195" width="18" height="35" rx="6" fill={c1} />
-    </g>
-  )
-  if (v === 3) return (
-    <g>
-      <path d="M 60 175 Q 50 180 48 230 L 152 230 Q 150 180 140 175 L 120 165 L 80 165 Z" fill="#ffffff" />
-      <path d="M 65 175 Q 55 180 53 230 L 147 230 Q 145 180 135 175 L 115 168 L 85 168 Z" fill={c1} opacity="0.3" />
-      <rect x="48" y="195" width="18" height="35" rx="6" fill="#ffffff" />
-      <rect x="134" y="195" width="18" height="35" rx="6" fill="#ffffff" />
-      <circle cx="100" cy="195" r="4" fill={c2} />
-      <circle cx="100" cy="210" r="4" fill={c2} />
-    </g>
-  )
-  if (v === 4) return (
-    <g>
-      <path d="M 60 175 Q 50 180 48 230 L 152 230 Q 150 180 140 175 L 120 165 L 80 165 Z" fill={c1} />
-      <path d="M 80 165 L 100 230 L 120 165" fill={c2} opacity="0.5" />
-      <rect x="48" y="195" width="18" height="35" rx="6" fill={c1} />
-      <rect x="134" y="195" width="18" height="35" rx="6" fill={c1} />
-      <text x="100" y="205" textAnchor="middle" fontSize="14" fill={c2}>✦</text>
-    </g>
-  )
-  return (
-    <g>
-      <path d="M 60 175 Q 50 180 48 230 L 152 230 Q 150 180 140 175 L 120 165 L 80 165 Z" fill={c1} />
-      <rect x="48" y="195" width="18" height="35" rx="6" fill={c1} />
-      <rect x="134" y="195" width="18" height="35" rx="6" fill={c1} />
-      <path d="M 82 165 Q 100 172 118 165" stroke={c2} strokeWidth="2" fill="none" opacity="0.6" />
-    </g>
-  )
+function darken(hex, amt = 0.26) {
+  const n = parseInt(hex.replace('#', ''), 16)
+  const r = Math.max(0, (n >> 16) - Math.round(255 * amt))
+  const g = Math.max(0, ((n >> 8) & 0xff) - Math.round(255 * amt))
+  const b = Math.max(0, (n & 0xff) - Math.round(255 * amt))
+  return `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`
 }
 
 function WingsLayer({ skinId }) {
@@ -113,163 +21,409 @@ function WingsLayer({ skinId }) {
   if (!skin) return null
   const c1 = skin.primaryColor
   const c2 = skin.secondaryColor
-  const v = skin.shapeVariant
+  const v  = skin.shapeVariant
   if (v === 1) return (
     <g opacity="0.85">
-      <ellipse cx="38" cy="190" rx="28" ry="45" fill={c1} transform="rotate(-20 38 190)" />
-      <ellipse cx="162" cy="190" rx="28" ry="45" fill={c1} transform="rotate(20 162 190)" />
-      <ellipse cx="38" cy="190" rx="16" ry="30" fill={c2} opacity="0.5" transform="rotate(-20 38 190)" />
-      <ellipse cx="162" cy="190" rx="16" ry="30" fill={c2} opacity="0.5" transform="rotate(20 162 190)" />
+      <ellipse cx="36" cy="190" rx="30" ry="48" fill={c1} transform="rotate(-22 36 190)" />
+      <ellipse cx="164" cy="190" rx="30" ry="48" fill={c1} transform="rotate(22 164 190)" />
+      <ellipse cx="36" cy="190" rx="17" ry="32" fill={c2} opacity="0.55" transform="rotate(-22 36 190)" />
+      <ellipse cx="164" cy="190" rx="17" ry="32" fill={c2} opacity="0.55" transform="rotate(22 164 190)" />
     </g>
   )
   if (v === 2) return (
     <g opacity="0.9">
-      <path d="M 60 185 Q 20 150 15 200 Q 10 250 55 220 Z" fill={c1} />
-      <path d="M 140 185 Q 180 150 185 200 Q 190 250 145 220 Z" fill={c1} />
+      <path d="M 58 188 Q 18 148 13 202 Q 8 252 53 222 Z" fill={c1} />
+      <path d="M 142 188 Q 182 148 187 202 Q 192 252 147 222 Z" fill={c1} />
+      <path d="M 58 188 Q 28 162 24 205 Q 20 242 52 222 Z" fill={c2} opacity="0.4" />
+      <path d="M 142 188 Q 172 162 176 205 Q 180 242 148 222 Z" fill={c2} opacity="0.4" />
     </g>
   )
   if (v === 3) return (
     <g opacity="0.85">
-      <ellipse cx="35" cy="185" rx="30" ry="50" fill={c1} transform="rotate(-25 35 185)" />
-      <ellipse cx="165" cy="185" rx="30" ry="50" fill={c1} transform="rotate(25 165 185)" />
-      <ellipse cx="35" cy="200" rx="20" ry="30" fill={c2} transform="rotate(-15 35 200)" />
-      <ellipse cx="165" cy="200" rx="20" ry="30" fill={c2} transform="rotate(15 165 200)" />
+      <ellipse cx="33" cy="185" rx="32" ry="53" fill={c1} transform="rotate(-27 33 185)" />
+      <ellipse cx="167" cy="185" rx="32" ry="53" fill={c1} transform="rotate(27 167 185)" />
+      <ellipse cx="33" cy="200" rx="22" ry="33" fill={c2} transform="rotate(-17 33 200)" />
+      <ellipse cx="167" cy="200" rx="22" ry="33" fill={c2} transform="rotate(17 167 200)" />
     </g>
   )
   return (
     <g opacity="0.9">
-      <ellipse cx="38" cy="188" rx="28" ry="42" fill={c1} transform="rotate(-18 38 188)" />
-      <ellipse cx="162" cy="188" rx="28" ry="42" fill={c1} transform="rotate(18 162 188)" />
-      <path d="M 38 165 L 55 190 L 38 215 Z" fill={c2} opacity="0.6" />
-      <path d="M 162 165 L 145 190 L 162 215 Z" fill={c2} opacity="0.6" />
+      <ellipse cx="36" cy="188" rx="30" ry="44" fill={c1} transform="rotate(-20 36 188)" />
+      <ellipse cx="164" cy="188" rx="30" ry="44" fill={c1} transform="rotate(20 164 188)" />
+      <path d="M 36 163 L 55 190 L 36 217 Z" fill={c2} opacity="0.6" />
+      <path d="M 164 163 L 145 190 L 164 217 Z" fill={c2} opacity="0.6" />
     </g>
   )
 }
 
-function BodyBase({ gender }) {
-  const isGirl = gender === 'girl'
-  return (
-    <g>
-      {/* Neck */}
-      <rect x="88" y="155" width="24" height="20" rx="4" fill={SKIN_TONE} />
-      {/* Head */}
-      <ellipse cx="100" cy="115" rx="52" ry="55" fill={SKIN_TONE} />
-      {/* Eyes */}
-      <ellipse cx="80" cy="108" rx="12" ry="13" fill="white" />
-      <ellipse cx="120" cy="108" rx="12" ry="13" fill="white" />
-      <circle cx="83" cy="110" r="7" fill="#1e293b" />
-      <circle cx="123" cy="110" r="7" fill="#1e293b" />
-      <circle cx="85" cy="107" r="3" fill="white" />
-      <circle cx="125" cy="107" r="3" fill="white" />
-      {/* Eyebrows */}
-      {isGirl ? (
-        <>
-          <path d="M 68 95 Q 80 90 88 94" stroke="#5d3a1a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          <path d="M 112 94 Q 120 90 132 95" stroke="#5d3a1a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          {/* Lashes */}
-          <line x1="70" y1="97" x2="68" y2="93" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="75" y1="94" x2="74" y2="90" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="80" y1="92" x2="80" y2="88" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="85" y1="93" x2="86" y2="89" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="90" y1="97" x2="92" y2="93" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="110" y1="97" x2="108" y2="93" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="115" y1="94" x2="114" y2="90" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="120" y1="92" x2="120" y2="88" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="125" y1="93" x2="126" y2="89" stroke="#1e293b" strokeWidth="1.5" />
-          <line x1="130" y1="97" x2="132" y2="93" stroke="#1e293b" strokeWidth="1.5" />
-        </>
-      ) : (
-        <>
-          <path d="M 68 95 Q 80 89 88 93" stroke="#3d2008" strokeWidth="3" fill="none" strokeLinecap="round" />
-          <path d="M 112 93 Q 120 89 132 95" stroke="#3d2008" strokeWidth="3" fill="none" strokeLinecap="round" />
-        </>
-      )}
-      {/* Nose */}
-      <circle cx="95" cy="125" r="2.5" fill={SKIN_DARK} />
-      <circle cx="105" cy="125" r="2.5" fill={SKIN_DARK} />
-      {/* Mouth */}
-      <path d="M 82 138 Q 100 150 118 138" stroke="#c2705a" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <path d="M 82 138 Q 100 148 118 138" fill="#e87455" opacity="0.3" />
-      {/* Cheeks */}
-      <ellipse cx="66" cy="130" rx="10" ry="7" fill="#f9a8a8" opacity="0.45" />
-      <ellipse cx="134" cy="130" rx="10" ry="7" fill="#f9a8a8" opacity="0.45" />
-      {/* Ears */}
-      <ellipse cx="48" cy="115" rx="8" ry="10" fill={SKIN_TONE} />
-      <ellipse cx="152" cy="115" rx="8" ry="10" fill={SKIN_TONE} />
-      {/* Arms */}
-      <path d="M 60 175 Q 40 200 38 240 L 55 242 Q 55 210 68 190" fill={SKIN_TONE} />
-      <path d="M 140 175 Q 160 200 162 240 L 145 242 Q 145 210 132 190" fill={SKIN_TONE} />
-      {/* Hands (3 fingers cartoon) */}
-      <ellipse cx="38" cy="246" rx="12" ry="9" fill={SKIN_TONE} />
-      <ellipse cx="162" cy="246" rx="12" ry="9" fill={SKIN_TONE} />
-      <line x1="30" y1="240" x2="28" y2="232" stroke={SKIN_DARK} strokeWidth="2" strokeLinecap="round" />
-      <line x1="38" y1="237" x2="37" y2="229" stroke={SKIN_DARK} strokeWidth="2" strokeLinecap="round" />
-      <line x1="46" y1="240" x2="47" y2="232" stroke={SKIN_DARK} strokeWidth="2" strokeLinecap="round" />
-      <line x1="154" y1="240" x2="153" y2="232" stroke={SKIN_DARK} strokeWidth="2" strokeLinecap="round" />
-      <line x1="162" y1="237" x2="163" y2="229" stroke={SKIN_DARK} strokeWidth="2" strokeLinecap="round" />
-      <line x1="170" y1="240" x2="172" y2="232" stroke={SKIN_DARK} strokeWidth="2" strokeLinecap="round" />
-    </g>
-  )
-}
-
-function HairLayer({ skinId, gender }) {
+function ShoesLayer({ skinId, uid }) {
   const skin = skinId ? getSkinById(skinId) : null
-  const hairColor = skin?.primaryColor || '#5d3a1a'
-  const hairAcc = skin?.secondaryColor || '#7b4f2e'
-  if (gender === 'girl') return (
-    <g>
-      <ellipse cx="100" cy="90" rx="54" ry="42" fill={hairColor} />
-      <path d="M 48 105 Q 38 140 42 180 L 56 170 Q 52 145 58 120 Z" fill={hairColor} />
-      <path d="M 152 105 Q 162 140 158 180 L 144 170 Q 148 145 142 120 Z" fill={hairColor} />
-      <ellipse cx="100" cy="67" rx="52" ry="18" fill={hairColor} />
-      <circle cx="50" cy="165" r="12" fill={hairColor} />
-      <circle cx="150" cy="165" r="12" fill={hairColor} />
-      <circle cx="50" cy="165" r="6" fill={hairAcc} opacity="0.7" />
-      <circle cx="150" cy="165" r="6" fill={hairAcc} opacity="0.7" />
-    </g>
+  const c1  = skin?.primaryColor   || '#ffffff'
+  const c2  = skin?.secondaryColor || '#94a3b8'
+  const c1d = darken(c1)
+  const v   = skin?.shapeVariant || 1
+  const gid = `shoeGrad${uid}`
+  const defs = (
+    <defs>
+      <linearGradient id={gid} x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor={c1} />
+        <stop offset="100%" stopColor={c1d} />
+      </linearGradient>
+    </defs>
   )
-  return (
-    <g>
-      <ellipse cx="100" cy="88" rx="53" ry="38" fill={hairColor} />
-      <ellipse cx="100" cy="65" rx="51" ry="16" fill={hairColor} />
-      <path d="M 60 80 Q 52 70 55 60 Q 65 55 70 65" fill={hairColor} />
-      <path d="M 140 80 Q 148 70 145 60 Q 135 55 130 65" fill={hairColor} />
-      <path d="M 88 60 Q 95 52 102 58" stroke={hairAcc} strokeWidth="2" fill="none" opacity="0.6" />
-    </g>
-  )
-}
-
-function HatLayer({ skinId }) {
-  const skin = skinId ? getSkinById(skinId) : null
-  if (!skin) return null
-  const c1 = skin.primaryColor
-  const c2 = skin.secondaryColor
-  const v = skin.shapeVariant
-  if (v === 1) return (
-    <g>
-      <rect x="70" y="58" width="60" height="30" rx="8" fill={c1} />
-      <rect x="55" y="84" width="90" height="10" rx="5" fill={c2} />
-      <path d="M 80 58 Q 100 45 120 58" fill={c1} />
-    </g>
-  )
+  const f = `url(#${gid})`
   if (v === 2) return (
-    <g>
-      <rect x="82" y="35" width="36" height="40" rx="4" fill={c1} />
-      <rect x="60" y="70" width="80" height="8" rx="4" fill={c2} />
-      <text x="100" y="62" textAnchor="middle" fontSize="12" fill={c2}>✦</text>
+    <g>{defs}
+      <ellipse cx="72" cy="323" rx="23" ry="11" fill={c1d} />
+      <ellipse cx="128" cy="323" rx="23" ry="11" fill={c1d} />
+      <rect x="54" y="305" width="36" height="20" rx="7" fill={f} />
+      <rect x="110" y="305" width="36" height="20" rx="7" fill={f} />
+      <rect x="57" y="308" width="30" height="6" rx="3" fill={c2} opacity="0.5" />
+      <rect x="113" y="308" width="30" height="6" rx="3" fill={c2} opacity="0.5" />
     </g>
   )
   if (v === 3) return (
-    <g>
-      <ellipse cx="100" cy="68" rx="40" ry="15" fill={c1} />
-      <ellipse cx="100" cy="58" rx="25" ry="20" fill={c1} />
+    <g>{defs}
+      <ellipse cx="72" cy="323" rx="23" ry="11" fill={c1d} />
+      <ellipse cx="128" cy="323" rx="23" ry="11" fill={c1d} />
+      <rect x="54" y="302" width="36" height="24" rx="5" fill={f} />
+      <rect x="110" y="302" width="36" height="24" rx="5" fill={f} />
     </g>
   )
   if (v === 4) return (
+    <g>{defs}
+      <ellipse cx="72" cy="323" rx="25" ry="12" fill={c1d} />
+      <ellipse cx="128" cy="323" rx="25" ry="12" fill={c1d} />
+      <rect x="53" y="305" width="38" height="19" rx="9" fill={f} />
+      <rect x="109" y="305" width="38" height="19" rx="9" fill={f} />
+      <circle cx="72" cy="311" r="3.5" fill={c2} opacity="0.7" />
+      <circle cx="128" cy="311" r="3.5" fill={c2} opacity="0.7" />
+    </g>
+  )
+  return (
+    <g>{defs}
+      <ellipse cx="72" cy="323" rx="23" ry="11" fill={c1d} />
+      <ellipse cx="128" cy="323" rx="23" ry="11" fill={c1d} />
+      <rect x="54" y="308" width="36" height="17" rx="9" fill={f} />
+      <rect x="110" y="308" width="36" height="17" rx="9" fill={f} />
+    </g>
+  )
+}
+
+function BottomLayer({ skinId, gender, uid }) {
+  const skin    = skinId ? getSkinById(skinId) : null
+  const c1      = skin?.primaryColor   || (gender === 'girl' ? '#4b5563' : '#1e40af')
+  const c2      = skin?.secondaryColor || '#93c5fd'
+  const c1d     = darken(c1, 0.22)
+  const isSkirt = gender === 'girl' && (!skin || skin.shapeVariant <= 2)
+  const gid     = `bottomGrad${uid}`
+  const defs = (
+    <defs>
+      <linearGradient id={gid} x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor={c1} />
+        <stop offset="100%" stopColor={c1d} />
+      </linearGradient>
+    </defs>
+  )
+  const f = `url(#${gid})`
+  if (isSkirt) return (
+    <g>{defs}
+      <path d="M 68 232 L 56 322 L 94 322 L 100 272 L 106 322 L 144 322 L 132 232 Z" fill={f} />
+      <path d="M 65 243 Q 100 258 135 243 L 132 232 L 68 232 Z" fill={c2} opacity="0.4" />
+      <path d="M 68 268 Q 100 278 132 268" stroke={c2} strokeWidth="1.5" fill="none" opacity="0.35" />
+    </g>
+  )
+  return (
+    <g>{defs}
+      <rect x="67" y="230" width="66" height="92" rx="6" fill={f} />
+      <line x1="100" y1="230" x2="100" y2="322" stroke={c2} strokeWidth="2" opacity="0.28" />
+      <rect x="67" y="230" width="10" height="92" rx="4" fill={c2} opacity="0.07" />
+    </g>
+  )
+}
+
+function TopLayer({ skinId, gender, uid }) {
+  const skin = skinId ? getSkinById(skinId) : null
+  const c1   = skin?.primaryColor   || (gender === 'boy' ? '#1d4ed8' : '#ec4899')
+  const c2   = skin?.secondaryColor || '#93c5fd'
+  const c1d  = darken(c1, 0.22)
+  const v    = skin?.shapeVariant || 1
+  const gid  = `topGrad${uid}`
+  const defs = (
+    <defs>
+      <linearGradient id={gid} x1="10%" y1="0%" x2="90%" y2="100%">
+        <stop offset="0%" stopColor={c1} />
+        <stop offset="100%" stopColor={c1d} />
+      </linearGradient>
+    </defs>
+  )
+  const f = `url(#${gid})`
+  if (v === 2) return (
+    <g>{defs}
+      <path data-char="torso" d="M 60 178 Q 50 183 48 232 L 152 232 Q 150 183 140 178 L 120 167 L 80 167 Z" fill={f} />
+      <path d="M 80 167 Q 100 178 120 167" stroke={c2} strokeWidth="3" fill="none" />
+      <rect x="48" y="197" width="18" height="36" rx="7" fill={f} />
+      <rect x="134" y="197" width="18" height="36" rx="7" fill={f} />
+    </g>
+  )
+  if (v === 3) return (
+    <g>{defs}
+      <path data-char="torso" d="M 60 178 Q 50 183 48 232 L 152 232 Q 150 183 140 178 L 120 167 L 80 167 Z" fill="#ffffff" />
+      <path d="M 65 178 Q 55 183 53 232 L 147 232 Q 145 183 135 178 L 115 170 L 85 170 Z" fill={f} opacity="0.28" />
+      <rect x="48" y="197" width="18" height="36" rx="7" fill="#ffffff" />
+      <rect x="134" y="197" width="18" height="36" rx="7" fill="#ffffff" />
+      <circle cx="100" cy="197" r="4.5" fill={c2} />
+      <circle cx="100" cy="213" r="4.5" fill={c2} />
+    </g>
+  )
+  if (v === 4) return (
+    <g>{defs}
+      <path data-char="torso" d="M 60 178 Q 50 183 48 232 L 152 232 Q 150 183 140 178 L 120 167 L 80 167 Z" fill={f} />
+      <path d="M 80 167 L 100 232 L 120 167" fill={c2} opacity="0.4" />
+      <rect x="48" y="197" width="18" height="36" rx="7" fill={f} />
+      <rect x="134" y="197" width="18" height="36" rx="7" fill={f} />
+      <text x="100" y="208" textAnchor="middle" fontSize="14" fill={c2}>✦</text>
+    </g>
+  )
+  return (
+    <g>{defs}
+      <path data-char="torso" d="M 60 178 Q 50 183 48 232 L 152 232 Q 150 183 140 178 L 120 167 L 80 167 Z" fill={f} />
+      <rect x="48" y="197" width="18" height="36" rx="7" fill={f} />
+      <rect x="134" y="197" width="18" height="36" rx="7" fill={f} />
+      <path d="M 82 167 Q 100 175 118 167" stroke={c2} strokeWidth="2.5" fill="none" opacity="0.5" />
+    </g>
+  )
+}
+
+function BodyBase({ gender, uid }) {
+  const isGirl   = gender === 'girl'
+  const skinGid  = `skinGrad${uid}`
+  const eyeGid   = `eyeGrad${uid}`
+  const sf       = `url(#${skinGid})`
+  const ef       = `url(#${eyeGid})`
+  return (
     <g>
-      <path d="M 70 78 L 80 48 Q 100 35 120 48 L 130 78 Z" fill={c1} />
-      <rect x="58" y="76" width="84" height="10" rx="5" fill={c2} />
-      <circle cx="100" cy="42" r="5" fill={c2} />
+      <defs>
+        <radialGradient id={skinGid} cx="38%" cy="30%" r="68%">
+          <stop offset="0%"   stopColor={SKIN_LIGHT} />
+          <stop offset="65%"  stopColor={SKIN_MID} />
+          <stop offset="100%" stopColor={SKIN_DARK} />
+        </radialGradient>
+        <radialGradient id={eyeGid} cx="30%" cy="25%" r="75%">
+          <stop offset="0%"   stopColor="#4a5568" />
+          <stop offset="100%" stopColor="#1a202c" />
+        </radialGradient>
+      </defs>
+
+      {/* Ground shadow */}
+      <ellipse cx="100" cy="343" rx="48" ry="7" fill="#000000" opacity="0.13" />
+
+      {/* Neck */}
+      <rect x="87" y="158" width="26" height="24" rx="5" fill={sf} />
+
+      {/* Head */}
+      <ellipse data-char="head" cx="100" cy="108" rx="58" ry="63" fill={sf} />
+
+      {/* Ears */}
+      <ellipse cx="42" cy="112" rx="9" ry="12" fill={SKIN_MID} />
+      <ellipse cx="158" cy="112" rx="9" ry="12" fill={SKIN_MID} />
+      <ellipse cx="42" cy="114" rx="5" ry="7" fill={SKIN_DARK} opacity="0.3" />
+      <ellipse cx="158" cy="114" rx="5" ry="7" fill={SKIN_DARK} opacity="0.3" />
+
+      {/* Eye whites */}
+      <ellipse cx="78" cy="103" rx="15" ry="16" fill="white" />
+      <ellipse cx="122" cy="103" rx="15" ry="16" fill="white" />
+      {/* Subtle top shadow on sclera */}
+      <ellipse cx="78" cy="97" rx="14" ry="7" fill="#cbd5e1" opacity="0.4" />
+      <ellipse cx="122" cy="97" rx="14" ry="7" fill="#cbd5e1" opacity="0.4" />
+
+      {/* Iris */}
+      <circle data-char="eye-l" cx="81" cy="106" r="10" fill={ef} />
+      <circle data-char="eye-r" cx="119" cy="106" r="10" fill={ef} />
+      {/* Pupil */}
+      <circle cx="81" cy="106" r="5.5" fill="#0f172a" />
+      <circle cx="119" cy="106" r="5.5" fill="#0f172a" />
+      {/* Main highlight */}
+      <circle cx="85" cy="101" r="4.5" fill="white" opacity="0.92" />
+      <circle cx="123" cy="101" r="4.5" fill="white" opacity="0.92" />
+      {/* Secondary micro-highlight */}
+      <circle cx="78" cy="109" r="2" fill="white" opacity="0.5" />
+      <circle cx="116" cy="109" r="2" fill="white" opacity="0.5" />
+
+      {/* Eyebrows */}
+      {isGirl ? (
+        <>
+          <path d="M 66 88 Q 78 83 88 87" stroke="#5d3a1a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path d="M 112 87 Q 122 83 134 88" stroke="#5d3a1a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <line x1="68"  y1="90" x2="66"  y2="86" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="73"  y1="87" x2="72"  y2="83" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="78"  y1="85" x2="78"  y2="81" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="83"  y1="86" x2="84"  y2="82" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="88"  y1="89" x2="90"  y2="85" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="112" y1="89" x2="110" y2="85" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="117" y1="87" x2="116" y2="83" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="122" y1="85" x2="122" y2="81" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="127" y1="86" x2="128" y2="82" stroke="#1e293b" strokeWidth="1.5" />
+          <line x1="132" y1="89" x2="134" y2="85" stroke="#1e293b" strokeWidth="1.5" />
+        </>
+      ) : (
+        <>
+          <path d="M 66 88 Q 78 82 88 86" stroke="#3d2008" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+          <path d="M 112 86 Q 122 82 134 88" stroke="#3d2008" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+        </>
+      )}
+
+      {/* Nose */}
+      <ellipse cx="96"  cy="122" rx="3"  ry="2.5" fill={SKIN_DARK} opacity="0.65" />
+      <ellipse cx="104" cy="122" rx="3"  ry="2.5" fill={SKIN_DARK} opacity="0.65" />
+
+      {/* Mouth */}
+      <path d="M 83 135 Q 100 150 117 135" stroke="#c2705a" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+      <path d="M 83 135 Q 100 147 117 135" fill="#e87455" opacity="0.22" />
+      {/* Teeth hint */}
+      <path d="M 87 137 Q 100 144 113 137" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.45" />
+
+      {/* Cheeks */}
+      <ellipse cx="62"  cy="126" rx="13" ry="9" fill="#f9a8a8" opacity="0.38" />
+      <ellipse cx="138" cy="126" rx="13" ry="9" fill="#f9a8a8" opacity="0.38" />
+
+      {/* Arms */}
+      <path data-char="arm-l" d="M 58 180 Q 38 207 36 244 L 54 246 Q 54 217 66 192" fill={sf} />
+      <path data-char="arm-r" d="M 142 180 Q 162 207 164 244 L 146 246 Q 146 217 134 192" fill={sf} />
+
+      {/* Hands — rounder, 3-knuckle cartoon style */}
+      <ellipse cx="36"  cy="250" rx="14" ry="11" fill={SKIN_MID} />
+      <ellipse cx="164" cy="250" rx="14" ry="11" fill={SKIN_MID} />
+      <ellipse cx="27"  cy="246" rx="5.5" ry="4.5" fill={SKIN_MID} />
+      <ellipse cx="36"  cy="242" rx="5.5" ry="4.5" fill={SKIN_MID} />
+      <ellipse cx="45"  cy="246" rx="5.5" ry="4.5" fill={SKIN_MID} />
+      <ellipse cx="155" cy="246" rx="5.5" ry="4.5" fill={SKIN_MID} />
+      <ellipse cx="164" cy="242" rx="5.5" ry="4.5" fill={SKIN_MID} />
+      <ellipse cx="173" cy="246" rx="5.5" ry="4.5" fill={SKIN_MID} />
+    </g>
+  )
+}
+
+function HairLayerBack({ skinId, gender, uid }) {
+  const skin      = skinId ? getSkinById(skinId) : null
+  const hairColor = skin?.primaryColor   || '#5d3a1a'
+  const hairAcc   = skin?.secondaryColor || '#7b4f2e'
+  const hairDark  = darken(hairColor, 0.2)
+  const gid       = `hairGrad${uid}`
+  const defs = (
+    <defs>
+      <linearGradient id={gid} x1="30%" y1="0%" x2="70%" y2="100%">
+        <stop offset="0%"   stopColor={hairColor} />
+        <stop offset="100%" stopColor={hairDark} />
+      </linearGradient>
+    </defs>
+  )
+  const f = `url(#${gid})`
+  if (gender === 'girl') return (
+    <g>
+      {defs}
+      <path d="M 42 108 Q 32 148 36 186 L 52 175 Q 48 150 54 124 Z" fill={f} />
+      <path d="M 158 108 Q 168 148 164 186 L 148 175 Q 152 150 146 124 Z" fill={f} />
+      <circle cx="44"  cy="170" r="15" fill={f} />
+      <circle cx="156" cy="170" r="15" fill={f} />
+      <circle cx="44"  cy="170" r="8" fill={hairAcc} opacity="0.55" />
+      <circle cx="156" cy="170" r="8" fill={hairAcc} opacity="0.55" />
+    </g>
+  )
+  return null
+}
+
+function HairLayerFront({ skinId, gender, uid }) {
+  const skin      = skinId ? getSkinById(skinId) : null
+  const hairColor = skin?.primaryColor   || '#5d3a1a'
+  const hairAcc   = skin?.secondaryColor || '#7b4f2e'
+  const gid       = `hairGrad${uid}`
+  const clipId    = `hairTopClip${uid}`
+  const f         = `url(#${gid})`
+  if (gender === 'girl') return (
+    <g>
+      <defs>
+        <clipPath id={clipId}>
+          <rect x="0" y="0" width="200" height="90" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <ellipse cx="100" cy="86" rx="60" ry="44" fill={f} />
+        <ellipse cx="100" cy="63" rx="57" ry="20" fill={f} />
+        <ellipse cx="85" cy="68" rx="18" ry="8" fill="white" opacity="0.1" transform="rotate(-15 85 68)" />
+      </g>
+    </g>
+  )
+  return (
+    <g>
+      <defs>
+        <linearGradient id={gid} x1="30%" y1="0%" x2="70%" y2="100%">
+          <stop offset="0%"   stopColor={hairColor} />
+          <stop offset="100%" stopColor={darken(hairColor, 0.2)} />
+        </linearGradient>
+        <clipPath id={clipId}>
+          <rect x="0" y="0" width="200" height="90" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <ellipse cx="100" cy="84" rx="58" ry="38" fill={f} />
+        <ellipse cx="100" cy="62" rx="56" ry="18" fill={f} />
+        <path d="M 58 80 Q 50 68 54 57 Q 64 52 70 63" fill={f} />
+        <path d="M 142 80 Q 150 68 146 57 Q 136 52 130 63" fill={f} />
+        <path d="M 86 60 Q 93 50 100 56" stroke={hairAcc} strokeWidth="2.5" fill="none" opacity="0.5" strokeLinecap="round" />
+        <path d="M 100 56 Q 107 50 114 60" stroke={hairAcc} strokeWidth="2" fill="none" opacity="0.38" strokeLinecap="round" />
+        <ellipse cx="90" cy="68" rx="20" ry="7" fill="white" opacity="0.09" transform="rotate(-10 90 68)" />
+      </g>
+    </g>
+  )
+}
+
+function HatLayer({ skinId, uid }) {
+  const skin = skinId ? getSkinById(skinId) : null
+  if (!skin) return null
+  const c1  = skin.primaryColor
+  const c2  = skin.secondaryColor
+  const c1d = darken(c1, 0.2)
+  const v   = skin.shapeVariant
+  const gid = `hatGrad${uid}`
+  const defs = (
+    <defs>
+      <linearGradient id={gid} x1="20%" y1="0%" x2="80%" y2="100%">
+        <stop offset="0%"   stopColor={c1} />
+        <stop offset="100%" stopColor={c1d} />
+      </linearGradient>
+    </defs>
+  )
+  const f = `url(#${gid})`
+  if (v === 1) return (
+    <g>{defs}
+      <rect x="68" y="56" width="64" height="32" rx="9" fill={f} />
+      <rect x="53" y="83" width="94" height="11" rx="6" fill={c2} />
+      <path d="M 78 56 Q 100 42 122 56" fill={f} />
+      <ellipse cx="100" cy="62" rx="20" ry="6" fill="white" opacity="0.1" />
+    </g>
+  )
+  if (v === 2) return (
+    <g>{defs}
+      <rect x="81" y="33" width="38" height="42" rx="5" fill={f} />
+      <rect x="58" y="70" width="84" height="9" rx="5" fill={c2} />
+      <text x="100" y="60" textAnchor="middle" fontSize="13" fill={c2}>✦</text>
+      <rect x="81" y="33" width="38" height="8" rx="4" fill="white" opacity="0.1" />
+    </g>
+  )
+  if (v === 3) return (
+    <g>{defs}
+      <ellipse cx="100" cy="66" rx="42" ry="16" fill={f} />
+      <ellipse cx="100" cy="55" rx="27" ry="22" fill={f} />
+      <ellipse cx="100" cy="50" rx="18" ry="8" fill="white" opacity="0.1" />
+    </g>
+  )
+  if (v === 4) return (
+    <g>{defs}
+      <path d="M 68 76 L 78 46 Q 100 32 122 46 L 132 76 Z" fill={f} />
+      <rect x="56" y="74" width="88" height="11" rx="6" fill={c2} />
+      <circle cx="100" cy="39" r="6" fill={c2} />
+      <ellipse cx="100" cy="54" rx="14" ry="5" fill="white" opacity="0.1" />
     </g>
   )
   return null
@@ -280,95 +434,188 @@ function GlassesLayer({ skinId }) {
   if (!skin) return null
   const c1 = skin.primaryColor
   const c2 = skin.secondaryColor
-  const v = skin.shapeVariant
+  const v  = skin.shapeVariant
   if (v === 1) return (
     <g>
-      <circle cx="80" cy="110" r="14" fill="none" stroke={c1} strokeWidth="3" />
-      <circle cx="120" cy="110" r="14" fill="none" stroke={c1} strokeWidth="3" />
-      <line x1="94" y1="110" x2="106" y2="110" stroke={c1} strokeWidth="2" />
-      <line x1="66" y1="108" x2="58" y2="105" stroke={c1} strokeWidth="2" />
-      <line x1="134" y1="108" x2="142" y2="105" stroke={c1} strokeWidth="2" />
+      <circle cx="79"  cy="105" r="15" fill={c2} opacity="0.18" stroke={c1} strokeWidth="3" />
+      <circle cx="121" cy="105" r="15" fill={c2} opacity="0.18" stroke={c1} strokeWidth="3" />
+      <line x1="94" y1="105" x2="106" y2="105" stroke={c1} strokeWidth="2.5" />
+      <line x1="64" y1="103" x2="56" y2="100"  stroke={c1} strokeWidth="2.5" />
+      <line x1="136" y1="103" x2="144" y2="100" stroke={c1} strokeWidth="2.5" />
     </g>
   )
   if (v === 2) return (
     <g>
-      <path d="M 68 110 Q 80 96 92 110 Q 80 124 68 110 Z" fill="none" stroke={c1} strokeWidth="3" />
-      <path d="M 108 110 Q 120 96 132 110 Q 120 124 108 110 Z" fill="none" stroke={c1} strokeWidth="3" />
-      <line x1="92" y1="110" x2="108" y2="110" stroke={c1} strokeWidth="2" />
+      <path d="M 66 105 Q 79 90 92 105 Q 79 120 66 105 Z"   fill={c2} opacity="0.18" stroke={c1} strokeWidth="3" />
+      <path d="M 108 105 Q 121 90 134 105 Q 121 120 108 105 Z" fill={c2} opacity="0.18" stroke={c1} strokeWidth="3" />
+      <line x1="92" y1="105" x2="108" y2="105" stroke={c1} strokeWidth="2.5" />
     </g>
   )
   if (v === 3) return (
     <g>
-      <path d="M 68 106 L 80 96 L 92 106 L 80 116 Z" fill="none" stroke={c1} strokeWidth="3" />
-      <path d="M 108 106 L 120 96 L 132 106 L 120 116 Z" fill="none" stroke={c1} strokeWidth="3" />
-      <line x1="92" y1="107" x2="108" y2="107" stroke={c1} strokeWidth="2" />
+      <path d="M 66 101 L 79 90 L 92 101 L 79 112 Z"    fill={c2} opacity="0.18" stroke={c1} strokeWidth="3" />
+      <path d="M 108 101 L 121 90 L 134 101 L 121 112 Z" fill={c2} opacity="0.18" stroke={c1} strokeWidth="3" />
+      <line x1="92" y1="102" x2="108" y2="102" stroke={c1} strokeWidth="2.5" />
     </g>
   )
   return (
     <g>
-      <rect x="66" y="99" width="28" height="22" rx="5" fill={c2} opacity="0.3" stroke={c1} strokeWidth="2.5" />
-      <rect x="106" y="99" width="28" height="22" rx="5" fill={c2} opacity="0.3" stroke={c1} strokeWidth="2.5" />
-      <line x1="94" y1="110" x2="106" y2="110" stroke={c1} strokeWidth="2" />
+      <rect x="64"  y="97" width="30" height="24" rx="6" fill={c2} opacity="0.22" stroke={c1} strokeWidth="2.5" />
+      <rect x="106" y="97" width="30" height="24" rx="6" fill={c2} opacity="0.22" stroke={c1} strokeWidth="2.5" />
+      <line x1="94" y1="109" x2="106" y2="109" stroke={c1} strokeWidth="2.5" />
     </g>
   )
 }
 
 function AccessoryLayer({ skinId }) {
   const skin = skinId ? getSkinById(skinId) : null
-  if (!skin) return null
+  if (!skin || skin.slot !== 'accessory') return null
   const c1 = skin.primaryColor
   const c2 = skin.secondaryColor
-  const v = skin.shapeVariant
-  if (skin.slot === 'accessory') {
-    if (v === 1) return (
-      <g transform="translate(130, 185)">
-        <rect x="0" y="0" width="28" height="36" rx="5" fill={c1} />
-        <rect x="3" y="3" width="22" height="22" rx="3" fill={c2} opacity="0.5" />
-        <path d="M 6 -8 Q 14 -14 22 -8" stroke={c1} strokeWidth="3" fill="none" strokeLinecap="round" />
-      </g>
-    )
-    if (v === 2) return (
-      <g transform="translate(130, 185)">
-        <rect x="0" y="0" width="28" height="36" rx="5" fill={c1} />
-        <text x="14" y="22" textAnchor="middle" fontSize="16">⭐</text>
-        <path d="M 6 -8 Q 14 -14 22 -8" stroke={c1} strokeWidth="3" fill="none" strokeLinecap="round" />
-      </g>
-    )
-    if (v === 3) return (
-      <g>
-        <rect x="155" y="195" width="6" height="50" rx="3" fill={c2} />
-        <circle cx="158" cy="192" r="8" fill={c1} />
-        <text x="158" y="196" textAnchor="middle" fontSize="10">✦</text>
-      </g>
-    )
-    if (v === 4) return (
-      <g transform="translate(128, 185)">
-        <rect x="0" y="5" width="22" height="28" rx="3" fill={c1} />
-        <rect x="4" y="1" width="14" height="8" rx="2" fill={c2} />
-        <text x="11" y="22" textAnchor="middle" fontSize="12">📖</text>
-      </g>
-    )
-  }
+  const v  = skin.shapeVariant
+  if (v === 1) return (
+    <g transform="translate(130, 185)">
+      <rect x="0" y="0" width="28" height="36" rx="5" fill={c1} />
+      <rect x="3" y="3" width="22" height="22" rx="3" fill={c2} opacity="0.5" />
+      <path d="M 6 -8 Q 14 -14 22 -8" stroke={c1} strokeWidth="3" fill="none" strokeLinecap="round" />
+    </g>
+  )
+  if (v === 2) return (
+    <g transform="translate(130, 185)">
+      <rect x="0" y="0" width="28" height="36" rx="5" fill={c1} />
+      <text x="14" y="22" textAnchor="middle" fontSize="16">⭐</text>
+      <path d="M 6 -8 Q 14 -14 22 -8" stroke={c1} strokeWidth="3" fill="none" strokeLinecap="round" />
+    </g>
+  )
+  if (v === 3) return (
+    <g>
+      <rect x="155" y="195" width="6" height="50" rx="3" fill={c2} />
+      <circle cx="158" cy="192" r="8" fill={c1} />
+      <text x="158" y="196" textAnchor="middle" fontSize="10">✦</text>
+    </g>
+  )
+  if (v === 4) return (
+    <g transform="translate(128, 185)">
+      <rect x="0" y="5" width="22" height="28" rx="3" fill={c1} />
+      <rect x="4" y="1" width="14" height="8"  rx="2" fill={c2} />
+      <text x="11" y="22" textAnchor="middle" fontSize="12">📖</text>
+    </g>
+  )
   return null
 }
 
-const ANIMATIONS = {
-  idle: { y: [0, -8, 0], transition: { duration: 2, repeat: Infinity, ease: 'easeInOut' } },
-  correctAnswer: { y: [0, -30, 0], scale: [1, 1.1, 1], transition: { duration: 0.5 } },
-  wrongAnswer: { x: [0, -10, 10, -10, 10, 0], transition: { duration: 0.4 } },
-  newSkin: { scale: [1, 1.15, 1], transition: { duration: 0.6 } },
-  sad: { rotate: [-2, 2, -2], transition: { duration: 0.5, repeat: 3 } },
-}
-
 export default function Character({ gender = 'boy', equippedSkins = {}, animationState = 'idle', size = 200 }) {
-  const anim = ANIMATIONS[animationState] || ANIMATIONS.idle
+  const charRef      = useRef()
+  const tweensRef    = useRef([])
+  const blinkRef     = useRef(null)
+  const uidRef       = useRef(null)
+  if (uidRef.current === null) uidRef.current = String(++_counter)
+  const uid   = uidRef.current
   const scale = size / 200
 
+  useEffect(() => {
+    if (!charRef.current) return
+    const el = charRef.current
+
+    tweensRef.current.forEach(t => t?.kill())
+    tweensRef.current = []
+    if (blinkRef.current) { blinkRef.current.kill(); blinkRef.current = null }
+
+    const q    = sel => el.querySelector(sel)
+    const head = q('[data-char="head"]')
+    const eyeL = q('[data-char="eye-l"]')
+    const eyeR = q('[data-char="eye-r"]')
+    const torso = q('[data-char="torso"]')
+    const push = (...ts) => tweensRef.current.push(...ts)
+
+    function scheduleBlink() {
+      blinkRef.current = gsap.delayedCall(3 + Math.random() * 2.5, () => {
+        if (!eyeL || !eyeR) return scheduleBlink()
+        const t = gsap.to([eyeL, eyeR], {
+          scaleY: 0.08, transformOrigin: 'center center',
+          duration: 0.06, yoyo: true, repeat: 1,
+          onComplete: scheduleBlink,
+        })
+        push(t)
+      })
+    }
+
+    function resetEl() {
+      gsap.set(el, { x: 0, y: 0, scale: 1, rotation: 0 })
+      gsap.set(el, { clearProps: 'filter' })
+      if (head)           gsap.set(head, { clearProps: 'all' })
+      if (eyeL && eyeR)   gsap.set([eyeL, eyeR], { clearProps: 'all' })
+    }
+
+    function launchIdle() {
+      tweensRef.current.forEach(t => t?.kill())
+      tweensRef.current = []
+      if (blinkRef.current) { blinkRef.current.kill(); blinkRef.current = null }
+      resetEl()
+      push(gsap.to(el, { y: -6, duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1 }))
+      if (torso) push(gsap.to(torso, { scaleY: 1.03, transformOrigin: 'center center', duration: 2, ease: 'sine.inOut', yoyo: true, repeat: -1 }))
+      scheduleBlink()
+    }
+
+    if (animationState === 'idle') {
+      launchIdle()
+
+    } else if (animationState === 'correctAnswer') {
+      resetEl()
+      const tl = gsap.timeline({ onComplete: launchIdle })
+      tl.to(el, { y: -35, scale: 1.12, duration: 0.22, ease: 'power2.out' })
+      if (head) tl.to(head, { rotation: 8, transformOrigin: 'center center', duration: 0.22, ease: 'power2.out' }, 0)
+      tl.to(el, { y: 0, scale: 1, duration: 0.23, ease: 'power2.in' })
+      if (head) {
+        tl.to(head, { rotation: -5, duration: 0.1 })
+        tl.to(head, { rotation: 0,  duration: 0.12 })
+      }
+      push(tl)
+
+    } else if (animationState === 'wrongAnswer') {
+      resetEl()
+      const tl = gsap.timeline({ onComplete: launchIdle })
+      if (eyeL && eyeR) tl.to([eyeL, eyeR], { scaleY: 0.2, transformOrigin: 'center center', duration: 0.05 }, 0)
+      tl.to(el, { x: -12, duration: 0.055, ease: 'none' })
+      tl.to(el, { x:  12, duration: 0.055, ease: 'none' })
+      tl.to(el, { x:  -8, duration: 0.055, ease: 'none' })
+      tl.to(el, { x:   8, duration: 0.055, ease: 'none' })
+      tl.to(el, { x:  -4, duration: 0.055, ease: 'none' })
+      tl.to(el, { x:   4, duration: 0.055, ease: 'none' })
+      tl.to(el, { x:   0, duration: 0.055, ease: 'none' })
+      if (eyeL && eyeR) tl.to([eyeL, eyeR], { scaleY: 1, transformOrigin: 'center center', duration: 0.1 })
+      push(tl)
+
+    } else if (animationState === 'newSkin') {
+      resetEl()
+      const tl = gsap.timeline({ onComplete: launchIdle })
+      tl.to(el, { rotation: 180, scale: 1.18, duration: 0.25, ease: 'power1.in',  filter: 'drop-shadow(0 0 18px #f59e0b)' })
+      tl.to(el, { rotation: 360, scale: 1,    duration: 0.25, ease: 'power1.out', filter: 'drop-shadow(0 0 8px #f59e0b)' })
+      tl.set(el, { rotation: 0 })
+      push(tl)
+
+    } else if (animationState === 'sad') {
+      resetEl()
+      const tl = gsap.timeline({ onComplete: launchIdle })
+      if (head) tl.to(head, { y: 8, transformOrigin: 'center center', duration: 0.15, ease: 'power2.out' }, 0)
+      tl.to(el, { rotation: -3, duration: 0.2, ease: 'sine.inOut' })
+      tl.to(el, { rotation:  3, duration: 0.4, ease: 'sine.inOut', yoyo: true, repeat: 5 })
+      tl.to(el, { rotation:  0, duration: 0.2 })
+      if (head) tl.to(head, { y: 0, duration: 0.2 }, '-=0.2')
+      push(tl)
+
+    } else {
+      launchIdle()
+    }
+
+    return () => {
+      tweensRef.current.forEach(t => t?.kill())
+      if (blinkRef.current) blinkRef.current.kill()
+    }
+  }, [animationState])
+
   return (
-    <motion.div
-      animate={anim}
-      style={{ display: 'inline-block', filter: animationState === 'newSkin' ? 'drop-shadow(0 0 12px #f59e0b)' : 'none' }}
-    >
+    <div ref={charRef} style={{ display: 'inline-block' }}>
       <svg
         viewBox="0 0 200 350"
         width={200 * scale}
@@ -377,15 +624,16 @@ export default function Character({ gender = 'boy', equippedSkins = {}, animatio
         overflow="visible"
       >
         <WingsLayer skinId={equippedSkins.wings} />
-        <ShoesLayer skinId={equippedSkins.shoes} gender={gender} />
-        <BottomLayer skinId={equippedSkins.bottom} gender={gender} />
-        <TopLayer skinId={equippedSkins.top} gender={gender} />
-        <BodyBase gender={gender} />
-        <HairLayer skinId={equippedSkins.hair} gender={gender} />
-        <HatLayer skinId={equippedSkins.hat} />
+        <ShoesLayer skinId={equippedSkins.shoes} uid={uid} />
+        <BottomLayer skinId={equippedSkins.bottom} gender={gender} uid={uid} />
+        <TopLayer skinId={equippedSkins.top} gender={gender} uid={uid} />
+        <HairLayerBack skinId={equippedSkins.hair} gender={gender} uid={uid} />
+        <BodyBase gender={gender} uid={uid} />
+        <HairLayerFront skinId={equippedSkins.hair} gender={gender} uid={uid} />
+        <HatLayer skinId={equippedSkins.hat} uid={uid} />
         <GlassesLayer skinId={equippedSkins.glasses} />
         <AccessoryLayer skinId={equippedSkins.accessory} />
       </svg>
-    </motion.div>
+    </div>
   )
 }

@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+﻿import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import { generateQuestion } from '../engine/mathEngine'
 import { SKINS } from '../data/skins'
 import FloorBackground from '../components/FloorBackground'
-import Character from '../components/Character'
+import Character from '../components/PixiCharacter'
 import QuestionCard from '../components/QuestionCard'
 import AnswerPanel from '../components/AnswerPanel'
 import HeartsBar from '../components/HeartsBar'
@@ -113,18 +113,14 @@ export default function RoomScreen() {
 
   const finishRoom = useCallback(() => {
     if (isBoss) {
-      // Unlock outfit for this floor
       const outfitItems = SKINS.filter((s) => s.unlockedAtFloor === floor && s.unlockedAtRoom === 4)
-      outfitItems.forEach((item) => {
-        if (!activeProfile.unlockedSkins.includes(item.id)) {
-          unlockSkin(activeProfile.id, item.id)
-        }
-      })
+      const newlyUnlocked = outfitItems.filter((item) => !activeProfile.unlockedSkins.includes(item.id))
+      newlyUnlocked.forEach((item) => unlockSkin(activeProfile.id, item.id))
       advanceRoom(activeProfile.id)
       if (floor >= 12) {
         navigate('/victory-game')
       } else {
-        navigate('/victory-floor')
+        navigate('/victory-floor', { state: { newSkinIds: newlyUnlocked.map((i) => i.id) } })
       }
     } else {
       advanceRoom(activeProfile.id)
@@ -202,7 +198,7 @@ export default function RoomScreen() {
 
               {question.visualAid && (
                 <div className="flex justify-center">
-                  <VisualAid type={question.visualAid.type} count={question.visualAid.count} />
+                  <VisualAid type={question.visualAid.type} count={question.visualAid.count} a={question.visualAid.a} b={question.visualAid.b} />
                 </div>
               )}
 

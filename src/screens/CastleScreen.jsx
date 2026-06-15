@@ -1,9 +1,9 @@
-import { useNavigate } from 'react-router-dom'
+﻿import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import { getLevelData } from '../data/levels'
 import HeartsBar from '../components/HeartsBar'
-import Character from '../components/Character'
+import Character from '../components/PixiCharacter'
 
 function FloorTile({ level, status, onClick }) {
   const data = getLevelData(level)
@@ -67,14 +67,24 @@ export default function CastleScreen() {
           </div>
         </div>
         <HeartsBar lives={activeProfile.lives} />
-        <motion.button
-          onClick={() => navigate('/wardrobe')}
-          className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-title px-4 py-2 rounded-full text-sm"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          👗 ARMARIO
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button
+            onClick={() => navigate('/profiles')}
+            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-title px-4 py-2 rounded-full text-sm"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            👤 JUGADORES
+          </motion.button>
+          <motion.button
+            onClick={() => navigate('/wardrobe')}
+            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-title px-4 py-2 rounded-full text-sm"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            👗 ARMARIO
+          </motion.button>
+        </div>
       </div>
 
       {/* Castle visual + floor list */}

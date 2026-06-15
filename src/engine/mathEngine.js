@@ -50,7 +50,7 @@ function youngNormal(floor, room) {
       options: shuffle([correct, ...wrongs]),
       correctAnswer: correct,
       interfaceType: '4_options',
-      visualAid: { type: 'fruits', count: a + b },
+      visualAid: { type: 'fruits', a, b },
       timeLimit: null,
     }
   }
@@ -204,14 +204,39 @@ function youngPro(floor, room) {
 
 // ── OLDER MODE ────────────────────────────────────────────────────────────────
 
-const TABLE_BY_FLOOR = { 1: [1,2,3], 2: [1,2,3,4], 3: [1,2,3,4,5], 4: [1,2,3,4,5,6], 5: [1,2,3,4,5,6,7], 6: [1,2,3,4,5,6,7,8], 7: [1,2,3,4,5,6,7,8,9], 8: [1,2,3,4,5,6,7,8,9,10], 9: [1,2,3,4,5,6,7,8,9,10,11], 10: [1,2,3,4,5,6,7,8,9,10,11,12], 11: [1,2,3,4,5,6,7,8,9,10,11,12], 12: [1,2,3,4,5,6,7,8,9,10,11,12] }
+// Planta 1-3: una tabla a la vez. Planta 4: repaso 2-4. Planta 5-6: tablas 5 y 6.
+// Planta 7: introduce el 7 con repaso 5-6. Planta 8-9: tablas 7-8 y 8-9.
+// Planta 10: gran repaso 2-9. Planta 11: tablas difíciles 10-12. Planta 12: repaso total.
+const TABLE_BY_FLOOR = {
+  1:  [2],
+  2:  [3],
+  3:  [4],
+  4:  [2, 3, 4],
+  5:  [5, 6],
+  6:  [6, 7],
+  7:  [5, 6, 7],
+  8:  [7, 8],
+  9:  [8, 9],
+  10: [2, 3, 4, 5, 6, 7, 8, 9],
+  11: [8, 9, 10, 11, 12],
+  12: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+}
+
+// El multiplicador máximo crece con la planta: plantas fáciles solo llegan a ×5,
+// luego ×10, y solo el repaso final llega a ×12.
+const MULTIPLIER_MAX_BY_FLOOR = {
+  1: 5, 2: 6, 3: 7,
+  4: 10, 5: 10, 6: 10, 7: 10, 8: 10, 9: 10, 10: 10, 11: 10,
+  12: 12,
+}
 
 function olderNormal(floor, room) {
-  const tables = TABLE_BY_FLOOR[floor] || [1,2,3]
+  const tables = TABLE_BY_FLOOR[floor] || [2]
   const table = tables[rnd(0, tables.length - 1)]
-  const multiplier = rnd(1, 12)
+  const multiplierMax = MULTIPLIER_MAX_BY_FLOOR[floor] || 10
+  const multiplier = rnd(1, multiplierMax)
   const useDiv = floor === 12 && rnd(0, 1) === 1
-  const interfaceType = floor <= 3 ? '4_options' : floor <= 8 ? '6_options' : 'keyboard'
+  const interfaceType = floor <= 4 ? '4_options' : floor <= 9 ? '6_options' : 'keyboard'
 
   if (useDiv) {
     const dividend = table * multiplier
@@ -242,9 +267,9 @@ function olderNormal(floor, room) {
 }
 
 function olderPro(floor) {
-  const tables = TABLE_BY_FLOOR[floor] || [1,2,3]
+  const tables = TABLE_BY_FLOOR[floor] || [2]
   const t1 = tables[rnd(0, tables.length - 1)]
-  const m1 = rnd(1, 12)
+  const m1 = rnd(1, MULTIPLIER_MAX_BY_FLOOR[floor] || 10)
   const c = rnd(1, 10)
   const op2 = rnd(0, 1) === 0 ? '+' : '-'
   const product = t1 * m1
@@ -260,11 +285,12 @@ function olderPro(floor) {
 }
 
 function olderSuperPro(floor) {
-  const tables = TABLE_BY_FLOOR[floor] || [1,2,3]
+  const tables = TABLE_BY_FLOOR[floor] || [2]
+  const multiplierMax = MULTIPLIER_MAX_BY_FLOOR[floor] || 10
   const t1 = tables[rnd(0, tables.length - 1)]
-  const m1 = rnd(1, 12)
+  const m1 = rnd(1, multiplierMax)
   const t2 = tables[rnd(0, tables.length - 1)]
-  const m2 = rnd(1, 6)
+  const m2 = rnd(1, Math.min(6, multiplierMax))
   const op = rnd(0, 1) === 0 ? '+' : '-'
   const p1 = t1 * m1
   const p2 = t2 * m2

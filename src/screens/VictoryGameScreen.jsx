@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react'
+﻿import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import { useGame } from '../context/GameContext'
 import DirectorMago from '../components/DirectorMago'
-import Character from '../components/Character'
+import Character from '../components/PixiCharacter'
 
 export default function VictoryGameScreen() {
   const { activeProfile, completeGame, startNewGamePlus } = useGame()

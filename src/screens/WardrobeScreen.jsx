@@ -1,9 +1,9 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import { SKINS } from '../data/skins'
-import Character from '../components/Character'
+import Character from '../components/PixiCharacter'
 
 const SLOTS = [
   { key: 'hair', label: 'Pelo', emoji: '💇' },

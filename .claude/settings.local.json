@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm run *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ivanp\\\\OneDrive\\\\magic-math\" -Name | Where-Object { -not $_.StartsWith\\('.'\\) -and -not $_.StartsWith\\('node'\\) -and -not $_.StartsWith\\('dist'\\) })"
     ]
   }
 }

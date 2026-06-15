@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import { useGame } from '../context/GameContext'
@@ -10,11 +10,13 @@ import DirectorMago from '../components/DirectorMago'
 export default function VictoryFloorScreen() {
   const { activeProfile } = useGame()
   const navigate = useNavigate()
+  const { state } = useLocation()
   const fired = useRef(false)
 
   const floor = activeProfile?.currentFloor || 1
   const prevFloor = floor > 1 ? floor - 1 : floor
-  const outfitItems = SKINS.filter((s) => s.unlockedAtFloor === prevFloor && s.unlockedAtRoom === 4)
+  const newSkinIds = state?.newSkinIds || []
+  const outfitItems = SKINS.filter((s) => newSkinIds.includes(s.id))
   const levelData = getLevelData(prevFloor)
 
   useEffect(() => {
@@ -41,9 +43,11 @@ export default function VictoryFloorScreen() {
           ¡PLANTA {prevFloor} SUPERADA!
         </div>
         <div className="font-title text-white text-2xl mb-1">{levelData.name}</div>
-        <div className="font-body text-white/60 text-lg mb-6">
-          Nuevo conjunto desbloqueado en tu armario
-        </div>
+        {outfitItems.length > 0 && (
+          <div className="font-body text-white/60 text-lg mb-6">
+            Nuevo conjunto desbloqueado en tu armario
+          </div>
+        )}
       </motion.div>
 
       {outfitItems.length > 0 && (

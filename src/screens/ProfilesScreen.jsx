@@ -1,8 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../context/GameContext'
-import Character from '../components/Character'
+import Character from '../components/PixiCharacter'
 
 function Stars() {
   return (

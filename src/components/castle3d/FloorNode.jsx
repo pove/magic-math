@@ -140,23 +140,14 @@ export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
         </>
       )}
 
-      {/* Checkmark for completed floors */}
-      {status === 'done' && (
-        <Text position={[0, 0.4, rTop + 1.4]} fontSize={1.6} color="#34d399" anchorX="center">
-          ✓
-        </Text>
-      )}
-
-      {/* Lock badge for locked floors */}
-      {status === 'locked' && (
-        <Text position={[0, 0.4, rTop + 1.4]} fontSize={1.6} color="#6b6485" anchorX="center">
-          🔒
-        </Text>
-      )}
-
-      {/* Floor number plaque — billboard, floats outside the wall so it's never hidden */}
-      <Billboard position={[0, FLOOR_HEIGHT / 2 + 2.4, 0]} radius={rTop + 1.2}>
+      {/* Number + status badge — anchored low on this floor's own body (well
+          under its roofline) so it always reads as belonging to THIS floor,
+          never floats into the gap toward the floor above. The badge glyph
+          sits pinned beside the number so the status is never ambiguous:
+          ✓ done, 🔒 locked, ★ the floor you're currently on. */}
+      <Billboard position={[0, 2, 0]} radius={rTop + 1.2}>
         <Text
+          position={[-0.55, 0, 0]}
           fontSize={1.5}
           color={status === 'locked' ? '#6b6485' : '#fef3c7'}
           anchorX="center"
@@ -165,10 +156,20 @@ export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
         >
           {String(level.floor)}
         </Text>
+        <Text
+          position={[0.95, 0.6, 0.01]}
+          fontSize={0.9}
+          color={status === 'done' ? '#34d399' : status === 'locked' ? '#6b6485' : '#fbbf24'}
+          anchorX="center"
+          outlineWidth={0.04}
+          outlineColor="#000000"
+        >
+          {status === 'done' ? '✓' : status === 'locked' ? '🔒' : '★'}
+        </Text>
       </Billboard>
 
       {/* Room name below the number, dimmer — billboard too */}
-      <Billboard position={[0, FLOOR_HEIGHT / 2 + 1.1, 0]} radius={rTop + 1.2}>
+      <Billboard position={[0, 0.95, 0]} radius={rTop + 1.2}>
         <Text
           fontSize={0.72}
           color={status === 'locked' ? '#565073' : '#e9e4ff'}

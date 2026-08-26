@@ -49,14 +49,14 @@ export default function CastleScreen2D({ viewMode }) {
   if (!activeProfile) return null
 
   return (
-    <div className="h-screen bg-gradient-to-b from-[#0f0c29] via-[#1a1040] to-[#0f0c29] flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
+    <div className="h-dvh bg-gradient-to-b from-[#0f0c29] via-[#1a1040] to-[#0f0c29] flex flex-col overflow-hidden">
+      {/* Header — wraps onto a second row rather than squashing on phones */}
+      <div className="flex items-center justify-between gap-2 flex-wrap px-3 sm:px-6 py-3 sm:py-4 border-b border-white/10">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Character gender={activeProfile.gender} equippedSkins={activeProfile.equippedSkins} animationState="idle" size={50} />
-          <div>
-            <div className="font-title text-white text-lg">{activeProfile.name}</div>
-            <div className="font-body text-white/60 text-sm">
+          <div className="min-w-0">
+            <div className="font-title text-white text-base sm:text-lg truncate">{activeProfile.name}</div>
+            <div className="font-body text-white/60 text-xs sm:text-sm">
               {activeProfile.ageMode === 'young' ? '⭐ Sumas y Restas' : '✦ Multiplicación'}
               {activeProfile.currentMode !== 'normal' && <span className="text-pink-400 ml-2">· Modo {activeProfile.currentMode.toUpperCase()}</span>}
             </div>
@@ -67,19 +67,21 @@ export default function CastleScreen2D({ viewMode }) {
           {viewMode.supports3D && <ViewModeToggle viewMode={viewMode} />}
           <motion.button
             onClick={() => navigate('/profiles')}
-            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-title px-4 py-2 rounded-full text-sm"
+            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-title px-3 sm:px-4 py-2 rounded-full text-sm"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            title="Jugadores"
           >
-            👤 JUGADORES
+            👤<span className="hidden lg:inline"> JUGADORES</span>
           </motion.button>
           <motion.button
             onClick={() => navigate('/wardrobe')}
-            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-title px-4 py-2 rounded-full text-sm"
+            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-title px-3 sm:px-4 py-2 rounded-full text-sm"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            title="Armario"
           >
-            👗 ARMARIO
+            👗<span className="hidden lg:inline"> ARMARIO</span>
           </motion.button>
         </div>
       </div>
@@ -123,10 +125,10 @@ export default function CastleScreen2D({ viewMode }) {
       </div>
 
       {/* Play button */}
-      <div className="p-4 border-t border-white/10 flex justify-center">
+      <div className="p-3 sm:p-4 border-t border-white/10 flex justify-center">
         <motion.button
           onClick={() => navigate('/room')}
-          className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-2xl px-12 py-4 rounded-full shadow-lg shadow-purple-500/40"
+          className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-lg sm:text-2xl px-8 sm:px-12 py-3 sm:py-4 rounded-full shadow-lg shadow-purple-500/40 whitespace-nowrap"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           animate={{ boxShadow: ['0 0 10px rgba(124,58,237,0.4)', '0 0 25px rgba(124,58,237,0.7)', '0 0 10px rgba(124,58,237,0.4)'] }}

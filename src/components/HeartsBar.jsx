@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 export default function HeartsBar({ lives = 3, maxLives = 3 }) {
   return (
-    <div className="flex gap-2 items-center">
+    <div className="flex gap-1 sm:gap-2 items-center">
       {Array.from({ length: maxLives }).map((_, i) => (
         <motion.div
           key={i}
@@ -11,7 +11,7 @@ export default function HeartsBar({ lives = 3, maxLives = 3 }) {
           transition={{ duration: 0.4 }}
         >
           <span
-            className="text-3xl select-none"
+            className="text-2xl sm:text-3xl select-none"
             style={{ filter: i < lives ? 'none' : 'grayscale(1) opacity(0.3)' }}
           >
             ❤️

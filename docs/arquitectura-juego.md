@@ -13,9 +13,15 @@ para producción. NO escribas explicaciones, genera SOLO el código.
 - canvas-confetti para la animación de victoria final
 - localStorage para persistencia multi-perfil
 - SIN otros frameworks, SIN backend, SIN SSR
-- Orientación EXCLUSIVA horizontal (landscape). Si el dispositivo está
-  en vertical, mostrar pantalla de aviso: "¡Gira tu dispositivo! 🧙"
-- Responsive: mobile landscape (480px+), tablet (768px+), desktop (1024px+)
+- Ambas orientaciones. En horizontal las pantallas usan dos columnas
+  (personaje al lado del contenido); en vertical se apilan, con el
+  personaje encima. No hay pantalla de "gira tu dispositivo".
+- Responsive: mobile portrait (360px+), mobile landscape, tablet (768px+),
+  desktop (1024px+). Las alturas usan `dvh`, no `vh`, para que la barra de
+  URL del móvil no recorte la pantalla.
+- Breakpoints propios: `portrait:`/`landscape:` para el reparto de columnas
+  y `short:` (max-height 480px) para el móvil en horizontal, donde el eje
+  escaso es el vertical y `sm:` no sirve.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## ARQUITECTURA DE ARCHIVOS
@@ -29,7 +35,7 @@ para producción. NO escribas explicaciones, genera SOLO el código.
 
 /src
   main.jsx
-  App.jsx                      → Router principal + orientación guard
+  App.jsx                      → Router principal
   
   /context
     GameContext.jsx            → Estado global, actions, persistencia

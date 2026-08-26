@@ -5,6 +5,7 @@ import { useGame } from '../context/GameContext'
 import DirectorMago from '../components/DirectorMago'
 import Character from '../components/PixiCharacter'
 import SceneBackground from '../components/SceneBackground'
+import useViewport from '../hooks/useViewport'
 import { sfx } from '../engine/sfx'
 import { useEffect } from 'react'
 
@@ -20,6 +21,9 @@ export default function DefeatScreen() {
   const { activeProfile, resetFloor } = useGame()
   const navigate = useNavigate()
   const [msg] = useState(() => ENCOURAGING[Math.floor(Math.random() * ENCOURAGING.length)])
+  const { isCompact, isShort } = useViewport()
+  // Two figures side by side, so they have to share the width on a phone
+  const characterSize = isShort ? 90 : isCompact ? 105 : 130
 
   useEffect(() => { sfx.defeat() }, [])
 
@@ -31,16 +35,16 @@ export default function DefeatScreen() {
   if (!activeProfile) return null
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="h-dvh w-full overflow-hidden">
       <SceneBackground floor={activeProfile.currentFloor}>
-        <div className="h-full flex flex-col items-center justify-center p-6 gap-6 text-center">
-          <div className="flex gap-6 items-end">
-            <DirectorMago animationState="sad" size={130} />
+        <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 gap-4 sm:gap-6 text-center overflow-y-auto">
+          <div className="flex gap-3 sm:gap-6 items-end shrink-0">
+            <DirectorMago animationState="sad" size={characterSize} />
             <Character
               gender={activeProfile.gender}
               equippedSkins={activeProfile.equippedSkins}
               animationState="wrongAnswer"
-              size={130}
+              size={characterSize}
             />
           </div>
 
@@ -48,13 +52,13 @@ export default function DefeatScreen() {
             className="max-w-md"
             initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
           >
-            <div className="font-title text-red-400 text-3xl mb-2">
+            <div className="font-title text-red-400 text-2xl sm:text-3xl mb-2">
               ¡Has perdido todas las vidas!
             </div>
-            <div className="font-body text-white/70 text-lg mb-4">
+            <div className="font-body text-white/70 text-base sm:text-lg mb-4">
               Planta {activeProfile.currentFloor} — vuelve al principio de la planta
             </div>
-            <div className="font-title text-amber-400 text-xl">
+            <div className="font-title text-amber-400 text-lg sm:text-xl">
               {msg}
             </div>
           </motion.div>
@@ -65,7 +69,7 @@ export default function DefeatScreen() {
           >
             <motion.button
               onClick={() => { sfx.click(); handleRetry() }}
-              className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-2xl px-10 py-4 rounded-full shadow-lg"
+              className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-lg sm:text-2xl px-6 sm:px-10 py-3 sm:py-4 rounded-full shadow-lg"
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             >
               ¡INTENTARLO DE NUEVO! 🪄

@@ -6,6 +6,7 @@ import { generateQuestion } from '../engine/mathEngine'
 import { getNormalRoomCount } from '../engine/floorConfig'
 import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE } from '../engine/roomAnimations'
 import { SKINS } from '../data/skins'
+import useViewport from '../hooks/useViewport'
 import FloorBackground from '../components/FloorBackground'
 import SceneBackground from '../components/SceneBackground'
 import Particles from '../components/Particles'
@@ -44,6 +45,10 @@ export default function RoomScreen() {
   const { activeProfile, loseLife, resetFloor, advanceRoom, unlockSkin, updateProfile } = useGame()
   const navigate = useNavigate()
   const location = useLocation()
+  const { isCompact, isShort } = useViewport()
+  // The wizard is the emotional anchor of the game, so it stays on screen at
+  // every size — it just shrinks, and moves above the question in portrait.
+  const characterSize = isShort ? 86 : isCompact ? 96 : 110
 
   // Repasar una planta ya superada desde el castillo entra en "modo práctica":
   // se puede jugar esa planta sin tocar el progreso real (vidas, planta actual,
@@ -248,7 +253,7 @@ export default function RoomScreen() {
   const roomLabel = isBoss ? 'Examen del Jefe' : `Habitación ${room} de ${normalRooms}`
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="h-dvh w-full overflow-hidden">
       <SceneBackground floor={floor} room={room} introLevel={isNewFloor ? 'floor' : 'room'}>
         {/* "Entrando en..." title card, then it fades out before the question shows */}
         <motion.div
@@ -267,7 +272,7 @@ export default function RoomScreen() {
           }}
         >
           <div
-            className="font-title text-amber-300 text-3xl sm:text-4xl text-center px-8 py-5 rounded-3xl bg-black/50 backdrop-blur-sm border-2 border-amber-400/40 shadow-2xl"
+            className="font-title text-amber-300 text-2xl sm:text-4xl text-center px-5 py-4 sm:px-8 sm:py-5 rounded-3xl bg-black/50 backdrop-blur-sm border-2 border-amber-400/40 shadow-2xl"
             style={{ textShadow: '0 3px 14px rgba(0,0,0,0.7)' }}
           >
             {isBoss ? '¡Entrando al Examen del Jefe!' : `Entrando en la Habitación ${room}`}
@@ -280,25 +285,25 @@ export default function RoomScreen() {
           entrance motion must NOT sit inside an opacity:0 ancestor, or it
           plays invisibly and appears to "pop in" together with the question.
         */}
-        <div className="h-full flex flex-col p-3 gap-3">
+        <div className="h-full flex flex-col p-2 sm:p-3 gap-2 sm:gap-3">
           {/* Header - fades in with the question, once the character has landed */}
-          <motion.div className="flex items-center justify-between gap-4 flex-wrap" {...contentFadeProps}>
-            <div className="flex items-center gap-3">
+          <motion.div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap" {...contentFadeProps}>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <button
                 onClick={() => navigate('/castle')}
                 className="text-white/50 hover:text-white/90 text-xl leading-none transition-colors"
                 title="Volver al castillo"
               >🏰</button>
-              <div>
-                <div className="font-title text-amber-400 text-lg flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="font-title text-amber-400 text-base sm:text-lg flex items-center gap-2">
                   Planta {floor}
                   {isPractice && (
-                    <span className="text-xs font-body bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded-full">
-                      🔁 Modo práctica
+                    <span className="text-[10px] sm:text-xs font-body bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                      🔁 <span className="hidden sm:inline">Modo </span>práctica
                     </span>
                   )}
                 </div>
-                <div className="font-body text-white/70 text-sm">{roomLabel}</div>
+                <div className="font-body text-white/70 text-xs sm:text-sm truncate">{roomLabel}</div>
               </div>
             </div>
             <HeartsBar lives={lives} />
@@ -312,10 +317,14 @@ export default function RoomScreen() {
             </motion.div>
           )}
 
-          {/* Main area */}
-          <div className="flex-1 flex gap-4 items-center min-h-0">
+          {/*
+            Main area. Landscape keeps the original two-column split; portrait
+            stacks the character above the question, where there is vertical
+            room to spare and no width to give away.
+          */}
+          <div className="flex-1 flex flex-col landscape:flex-row gap-2 landscape:gap-4 items-center justify-center min-h-0 overflow-y-auto">
             {/* Character - animates independently of the question/answers fade */}
-            <div className="hidden sm:flex flex-col items-center justify-center w-28 shrink-0">
+            <div className="flex flex-col items-center justify-center shrink-0 landscape:w-28">
               <motion.div
                 initial={
                   isNewFloor
@@ -341,13 +350,13 @@ export default function RoomScreen() {
                   gender={activeProfile.gender}
                   equippedSkins={activeProfile.equippedSkins}
                   animationState={animState}
-                  size={110}
+                  size={characterSize}
                 />
               </motion.div>
             </div>
 
             {/* Question + answers */}
-            <motion.div className="flex-1 flex flex-col gap-4 min-w-0" {...contentFadeProps}>
+            <motion.div className="w-full landscape:flex-1 flex flex-col gap-3 sm:gap-4 min-w-0" {...contentFadeProps}>
               <QuestionCard questionText={question.questionText} ageMode={activeProfile.ageMode} />
 
               {question.visualAid && (
@@ -359,7 +368,7 @@ export default function RoomScreen() {
               <AnimatePresence>
                 {feedback && (
                   <motion.div
-                    className={`text-center font-title text-3xl ${feedback === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}
+                    className={`text-center font-title text-xl sm:text-3xl ${feedback === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}
                     initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
                   >
                     {feedback === 'correct' ? '¡CORRECTO! ✨' : '¡VUELVE A INTENTARLO! 💫'}

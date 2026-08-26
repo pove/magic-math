@@ -11,18 +11,31 @@ import SkyDome from '../components/castle3d/SkyDome'
 import MagicParticles from '../components/castle3d/MagicParticles'
 import Ground from '../components/castle3d/Ground'
 import useCameraFly from '../components/castle3d/useCameraFly'
+import { framingForAspect, WIDE_FRAMING } from '../components/castle3d/framing'
 import ViewModeToggle from '../components/ViewModeToggle'
 
 function Scene({ floorStates, currentFloor, onSelectFloor, focusY }) {
   const controlsRef = useRef()
-  const { camera } = useThree()
+  const { camera, size } = useThree()
 
-  // Cinematic intro: start far/high, then glide to the active floor
+  const { fov, distance } = framingForAspect(size.width / Math.max(1, size.height))
+
+  // Keep the lens in step with the viewport — this also runs on rotation,
+  // and useCameraFly picks up the matching distance change.
   useEffect(() => {
-    camera.position.set(45, 40, 60)
+    camera.fov = fov
+    camera.updateProjectionMatrix()
+  }, [camera, fov])
+
+  // Cinematic intro: start far/high, then glide to the active floor. The
+  // start point scales with the framing so portrait opens equally wide.
+  useEffect(() => {
+    const zoom = distance / WIDE_FRAMING.distance
+    camera.position.set(45 * zoom, 40 * zoom, 60 * zoom)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camera])
 
-  useCameraFly({ targetY: focusY, controlsRef })
+  useCameraFly({ targetY: focusY, controlsRef, distance })
 
   return (
     <>
@@ -39,8 +52,8 @@ function Scene({ floorStates, currentFloor, onSelectFloor, focusY }) {
       <OrbitControls
         ref={controlsRef}
         enablePan={false}
-        minDistance={14}
-        maxDistance={80}
+        minDistance={distance * 0.55}
+        maxDistance={distance * 3}
         minPolarAngle={Math.PI * 0.15}
         maxPolarAngle={Math.PI * 0.52}
       />
@@ -97,27 +110,32 @@ export default function CastleScreen3D({ viewMode }) {
         />
       </Canvas>
 
-      {/* HUD */}
-      <div className="absolute top-4 left-4 flex items-center gap-3">
-        <ViewModeToggle viewMode={viewMode} />
-        <div className="bg-black/50 text-amber-300 font-title px-4 py-2 rounded-xl border border-white/10 backdrop-blur text-sm">
-          🧙 {activeProfile.name} · Planta {currentFloor}/12
+      {/* HUD — one bar rather than two floating corners, so the left and right
+          groups can never overlap on a narrow phone */}
+      <div className="absolute top-0 inset-x-0 p-3 sm:p-4 flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <ViewModeToggle viewMode={viewMode} />
+          <div className="bg-black/50 text-amber-300 font-title px-3 sm:px-4 py-2 rounded-xl border border-white/10 backdrop-blur text-xs sm:text-sm truncate">
+            🧙 <span className="hidden sm:inline">{activeProfile.name} · </span>Planta {currentFloor}/12
+          </div>
         </div>
-      </div>
 
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        <motion.button
-          onClick={() => navigate('/profiles')}
-          className="bg-black/50 hover:bg-black/70 text-white font-title px-4 py-2 rounded-xl border border-white/20 backdrop-blur transition text-sm"
-        >
-          👤
-        </motion.button>
-        <motion.button
-          onClick={() => navigate('/wardrobe')}
-          className="bg-black/50 hover:bg-black/70 text-white font-title px-4 py-2 rounded-xl border border-white/20 backdrop-blur transition text-sm"
-        >
-          👗
-        </motion.button>
+        <div className="flex items-center gap-2 shrink-0">
+          <motion.button
+            onClick={() => navigate('/profiles')}
+            className="bg-black/50 hover:bg-black/70 text-white font-title px-3 sm:px-4 py-2 rounded-xl border border-white/20 backdrop-blur transition text-sm"
+            title="Jugadores"
+          >
+            👤
+          </motion.button>
+          <motion.button
+            onClick={() => navigate('/wardrobe')}
+            className="bg-black/50 hover:bg-black/70 text-white font-title px-3 sm:px-4 py-2 rounded-xl border border-white/20 backdrop-blur transition text-sm"
+            title="Armario"
+          >
+            👗
+          </motion.button>
+        </div>
       </div>
 
       <div className="absolute top-16 right-4 bg-black/40 text-white/70 font-body text-xs px-3 py-2 rounded-lg backdrop-blur hidden md:block">

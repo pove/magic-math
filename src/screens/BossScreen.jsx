@@ -5,6 +5,7 @@ import { useGame } from '../context/GameContext'
 import { JOKES } from '../data/jokes'
 import DirectorMago from '../components/DirectorMago'
 import SceneBackground from '../components/SceneBackground'
+import Character from '../components/PixiCharacter'
 import useViewport from '../hooks/useViewport'
 import { sfx } from '../engine/sfx'
 
@@ -27,6 +28,7 @@ export default function BossScreen() {
   const [joke] = useState(getRandomJoke)
   const { isCompact, isShort } = useViewport()
   const directorSize = isShort ? 110 : isCompact ? 140 : 170
+  const characterSize = isShort ? 86 : isCompact ? 96 : 110
 
   const practiceState = location.state?.practiceFloor
     ? { practiceFloor: location.state.practiceFloor, practiceRoom: location.state.practiceRoom, practiceLives: location.state.practiceLives }
@@ -44,15 +46,28 @@ export default function BossScreen() {
             className="absolute top-4 left-4 text-white/50 hover:text-white/90 text-xl transition-colors"
             title="Volver al castillo"
           >🏰</button>
-          <motion.div
-            initial={{ x: -300, opacity: 0, rotate: -10 }}
-            animate={{ x: 0, opacity: 1, rotate: 0 }}
-            transition={{ type: 'spring', damping: 14 }}
-            onAnimationComplete={() => sfx.magic()}
-            className="shrink-0"
-          >
-            <DirectorMago animationState="idle" size={directorSize} talking />
-          </motion.div>
+          <div className="shrink-0 flex items-end justify-center gap-2 sm:gap-4">
+            <motion.div
+              initial={{ x: 120, opacity: 0, rotate: 8 }}
+              animate={{ x: 0, opacity: 1, rotate: 0 }}
+              transition={{ type: 'spring', damping: 14, delay: 0.15 }}
+            >
+              <Character
+                gender={activeProfile.gender}
+                equippedSkins={activeProfile.equippedSkins}
+                animationState="idle"
+                size={characterSize}
+              />
+            </motion.div>
+            <motion.div
+              initial={{ x: -300, opacity: 0, rotate: -10 }}
+              animate={{ x: 0, opacity: 1, rotate: 0 }}
+              transition={{ type: 'spring', damping: 14 }}
+              onAnimationComplete={() => sfx.magic()}
+            >
+              <DirectorMago animationState="idle" size={directorSize} talking />
+            </motion.div>
+          </div>
 
           <motion.div
             className="max-w-lg w-full bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-xl shadow-purple-900/50 p-4 sm:p-6 text-center"

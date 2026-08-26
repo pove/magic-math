@@ -16,3 +16,9 @@ export function getBossRoom(floor) {
 export function isBossRoom(floor, room) {
   return room === getBossRoom(floor)
 }
+
+export function getFloorStatus(floor, currentFloor) {
+  if (floor < currentFloor) return 'done'
+  if (floor === currentFloor) return 'active'
+  return 'locked'
+}

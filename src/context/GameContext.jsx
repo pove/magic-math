@@ -42,6 +42,7 @@ function reducer(state, action) {
         newGamePlus: false,
         currentMode: 'normal',
         unlockedModes: ['normal'],
+        ...action.payload.overrides,
       }
       const profiles = [...state.profiles, profile]
       saveProfiles(profiles)
@@ -146,7 +147,7 @@ export function GameProvider({ children }) {
   const activeProfile = state.profiles.find((p) => p.id === state.activeId) || null
 
   const actions = {
-    createProfile: (data) => dispatch({ type: 'CREATE_PROFILE', payload: data }),
+    createProfile: (data, overrides) => dispatch({ type: 'CREATE_PROFILE', payload: { ...data, overrides } }),
     selectProfile: (id) => dispatch({ type: 'SELECT_PROFILE', payload: id }),
     deleteProfile: (id) => dispatch({ type: 'DELETE_PROFILE', payload: id }),
     updateProfile: (id, changes) => dispatch({ type: 'UPDATE_PROFILE', payload: { id, changes } }),

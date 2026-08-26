@@ -1,8 +1,10 @@
-﻿import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+﻿import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import Character from '../components/PixiCharacter'
+import ShareCodeModal from '../components/ShareCodeModal'
+import ImportCodeModal from '../components/ImportCodeModal'
 
 function Stars() {
   return (
@@ -59,6 +61,19 @@ export default function ProfilesScreen() {
   const { state, selectProfile, deleteProfile } = useGame()
   const navigate = useNavigate()
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [shareTarget, setShareTarget] = useState(null)
+  const [showImport, setShowImport] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const importCode = searchParams.get('import') || ''
+
+  useEffect(() => {
+    if (importCode) setShowImport(true)
+  }, [importCode])
+
+  const handleCloseImport = () => {
+    setShowImport(false)
+    if (importCode) setSearchParams({}, { replace: true })
+  }
 
   const handleSelect = (id) => {
     selectProfile(id)
@@ -103,6 +118,11 @@ export default function ProfilesScreen() {
                 onClick={(e) => { e.stopPropagation(); setDeleteTarget(p.id) }}
                 className="absolute top-3 right-3 text-white/40 hover:text-red-400 text-xl transition-colors"
               >🗑️</button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShareTarget(p.id) }}
+                className="absolute top-3 right-11 text-white/40 hover:text-amber-400 text-xl transition-colors"
+                title="Continuar en otro dispositivo"
+              >📤</button>
 
               <div className="flex items-center gap-3">
                 <Character
@@ -149,6 +169,14 @@ export default function ProfilesScreen() {
             ¡Crea tu primer mago para empezar la aventura!
           </motion.p>
         )}
+
+        <motion.button
+          onClick={() => setShowImport(true)}
+          className="block mx-auto mt-2 font-body text-white/50 hover:text-amber-400 text-sm underline transition-colors"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+        >
+          📥 Tengo un código de otro dispositivo
+        </motion.button>
       </div>
 
       <AnimatePresence>
@@ -158,6 +186,15 @@ export default function ProfilesScreen() {
             onConfirm={() => handleDelete(deleteTarget)}
             onCancel={() => setDeleteTarget(null)}
           />
+        )}
+        {shareTarget && (
+          <ShareCodeModal
+            profile={state.profiles.find((p) => p.id === shareTarget)}
+            onClose={() => setShareTarget(null)}
+          />
+        )}
+        {showImport && (
+          <ImportCodeModal initialCode={importCode} onClose={handleCloseImport} />
         )}
       </AnimatePresence>
     </div>

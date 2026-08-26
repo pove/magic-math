@@ -303,6 +303,18 @@ function olderNormal(floor, room) {
   }
 }
 
+// Cuántas preguntas distintas puede generar olderNormal para esta planta/habitación
+// sin repetirse (tabla(s) reveladas × multiplicador máximo alcanzado en esa habitación).
+// Los demás modos (young, pro, super-pro) tienen suficiente variedad y no se acotan.
+export function getMaxUniqueQuestions(ageMode, floor, room, currentMode) {
+  if (ageMode !== 'older' || currentMode !== 'normal') return Infinity
+  const totalRooms = getNormalRoomCount(floor)
+  const allTables = TABLE_BY_FLOOR[floor] || [2]
+  const tables = revealSubset(allTables, room, totalRooms)
+  const multiplierMax = rampValue(room, totalRooms, 5, MULTIPLIER_MAX_BY_FLOOR[floor] || 10)
+  return tables.length * multiplierMax
+}
+
 function olderPro(floor) {
   const tables = TABLE_BY_FLOOR[floor] || [2]
   const t1 = tables[rnd(0, tables.length - 1)]

@@ -2,7 +2,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../context/GameContext'
-import { generateQuestion } from '../engine/mathEngine'
+import { generateQuestion, getMaxUniqueQuestions } from '../engine/mathEngine'
 import { getNormalRoomCount } from '../engine/floorConfig'
 import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE } from '../engine/roomAnimations'
 import { SKINS } from '../data/skins'
@@ -61,7 +61,10 @@ export default function RoomScreen() {
   const normalRooms = getNormalRoomCount(floor)
   const bossRoom = normalRooms + 1
   const isBoss = room === bossRoom
-  const totalQuestions = isBoss ? QUESTIONS_BOSS : QUESTIONS_NORMAL
+  // No pedir más preguntas de las que hay combinaciones únicas posibles (p.ej. la
+  // planta 1 solo repasa la tabla del 2 hasta ×5 → como mucho 5 preguntas, sin repetir).
+  const maxUnique = getMaxUniqueQuestions(activeProfile?.ageMode, floor, room, activeProfile?.currentMode)
+  const totalQuestions = Math.min(isBoss ? QUESTIONS_BOSS : QUESTIONS_NORMAL, maxUnique)
   const lives = isPractice ? practiceLives : (activeProfile?.lives ?? 3)
   // First room of a floor gets the big "arriving at a new floor" flourish;
   // any other room gets a quicker "walking into the next room" settle.
@@ -129,6 +132,7 @@ export default function RoomScreen() {
       setTimeout(() => {
         setAnimState('idle')
         const newAnswered = answered + 1
+        setAnswered(newAnswered)
         if (newAnswered >= totalQuestions) {
           // Room complete
           const accessory = SKINS.find(
@@ -141,7 +145,6 @@ export default function RoomScreen() {
             finishRoom()
           }
         } else {
-          setAnswered(newAnswered)
           nextQuestion()
         }
       }, 600)
@@ -176,22 +179,28 @@ export default function RoomScreen() {
     }
   }, [disabled, question, answered, totalQuestions, activeProfile, floor, room, bossRoom, isPractice, practiceLives, loseLife, unlockSkin, nextQuestion, navigate, updateProfile])
 
-  // Plays the "character flies off happily" beat, then swaps rooms once it's off-screen.
-  const advanceAndGo = useCallback((path, state) => {
+  // Plays the "character flies off happily" beat, then runs the given action
+  // once it's off-screen — so the finished-room state (e.g. a 100% progress
+  // bar) is visible for a beat before the screen actually changes.
+  const leaveThen = useCallback((action) => {
     setLeaving(true)
     sfx.whoosh()
     setParticles({ type: 'magic', key: Date.now() + 1 })
-    setTimeout(() => {
+    setTimeout(action, ROOM_LEAVE.navigateDelayMs)
+  }, [])
+
+  const advanceAndGo = useCallback((path, state) => {
+    leaveThen(() => {
       if (!isPractice) advanceRoom(activeProfile.id)
       navigate(path, state ? { state } : undefined)
-    }, ROOM_LEAVE.navigateDelayMs)
-  }, [isPractice, activeProfile, advanceRoom, navigate])
+    })
+  }, [leaveThen, isPractice, activeProfile, advanceRoom, navigate])
 
   const finishRoom = useCallback(() => {
     if (isPractice) {
       // No se toca el progreso real: ni planta actual, ni vidas, ni disfraces.
       if (isBoss) {
-        navigate('/castle')
+        leaveThen(() => navigate('/castle'))
       } else if (room >= normalRooms) {
         advanceAndGo('/boss', { practiceFloor: floor, practiceRoom: bossRoom, practiceLives })
       } else {
@@ -202,19 +211,21 @@ export default function RoomScreen() {
     if (isBoss) {
       const outfitItems = SKINS.filter((s) => s.unlockedAtFloor === floor && s.unlockedAtRoom === bossRoom)
       const newlyUnlocked = outfitItems.filter((item) => !activeProfile.unlockedSkins.includes(item.id))
-      newlyUnlocked.forEach((item) => unlockSkin(activeProfile.id, item.id))
-      advanceRoom(activeProfile.id)
-      if (floor >= 12) {
-        navigate('/victory-game')
-      } else {
-        navigate('/victory-floor', { state: { newSkinIds: newlyUnlocked.map((i) => i.id) } })
-      }
+      leaveThen(() => {
+        newlyUnlocked.forEach((item) => unlockSkin(activeProfile.id, item.id))
+        advanceRoom(activeProfile.id)
+        if (floor >= 12) {
+          navigate('/victory-game')
+        } else {
+          navigate('/victory-floor', { state: { newSkinIds: newlyUnlocked.map((i) => i.id) } })
+        }
+      })
     } else if (room >= normalRooms) {
       advanceAndGo('/boss')
     } else {
       advanceAndGo('/room')
     }
-  }, [isPractice, isBoss, floor, room, normalRooms, bossRoom, practiceLives, activeProfile, unlockSkin, advanceRoom, navigate, advanceAndGo])
+  }, [isPractice, isBoss, floor, room, normalRooms, bossRoom, practiceLives, activeProfile, unlockSkin, advanceRoom, navigate, advanceAndGo, leaveThen])
 
   const handleTimeUp = useCallback(() => {
     if (disabled) return

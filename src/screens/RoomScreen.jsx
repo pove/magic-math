@@ -261,7 +261,7 @@ export default function RoomScreen() {
 
   if (!activeProfile) return null
 
-  const roomLabel = isBoss ? 'Examen del Jefe' : `Habitación ${room} de ${normalRooms}`
+  const roomLabel = isBoss ? 'Examen del Mago' : `Habitación ${room} de ${normalRooms}`
 
   return (
     <div className="h-dvh w-full overflow-hidden">
@@ -286,7 +286,7 @@ export default function RoomScreen() {
             className="font-title text-amber-300 text-2xl sm:text-4xl text-center px-5 py-4 sm:px-8 sm:py-5 rounded-3xl bg-black/50 backdrop-blur-sm border-2 border-amber-400/40 shadow-2xl"
             style={{ textShadow: '0 3px 14px rgba(0,0,0,0.7)' }}
           >
-            {isBoss ? '¡Entrando al Examen del Jefe!' : `Entrando en la Habitación ${room}`}
+            {isBoss ? '¡Entrando al Examen del Mago!' : `Entrando en la Habitación ${room}`}
           </div>
         </motion.div>
 

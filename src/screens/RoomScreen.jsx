@@ -12,6 +12,7 @@ import SceneBackground from '../components/SceneBackground'
 import Particles from '../components/Particles'
 import { sfx } from '../engine/sfx'
 import Character from '../components/PixiCharacter'
+import DirectorMago from '../components/DirectorMago'
 import QuestionCard from '../components/QuestionCard'
 import AnswerPanel from '../components/AnswerPanel'
 import HeartsBar from '../components/HeartsBar'
@@ -49,6 +50,7 @@ export default function RoomScreen() {
   // The wizard is the emotional anchor of the game, so it stays on screen at
   // every size — it just shrinks, and moves above the question in portrait.
   const characterSize = isShort ? 86 : isCompact ? 96 : 110
+  const magoSize = isShort ? 110 : isCompact ? 130 : 155
 
   // Repasar una planta ya superada desde el castillo entra en "modo práctica":
   // se puede jugar esa planta sin tocar el progreso real (vidas, planta actual,
@@ -262,6 +264,7 @@ export default function RoomScreen() {
   if (!activeProfile) return null
 
   const roomLabel = isBoss ? 'Examen del Mago' : `Habitación ${room} de ${normalRooms}`
+  const magoState = animState === 'correctAnswer' ? 'applaud' : animState === 'wrongAnswer' ? 'sad' : 'idle'
 
   return (
     <div className="h-dvh w-full overflow-hidden">
@@ -334,8 +337,8 @@ export default function RoomScreen() {
             room to spare and no width to give away.
           */}
           <div className="flex-1 flex flex-col landscape:flex-row gap-2 landscape:gap-4 items-center justify-center min-h-0 overflow-y-auto">
-            {/* Character - animates independently of the question/answers fade */}
-            <div className="flex flex-col items-center justify-center shrink-0 landscape:w-28">
+            {/* Character (+ the wizard, in the boss exam) - animates independently of the question/answers fade */}
+            <div className={`flex items-end justify-center shrink-0 gap-1 sm:gap-2 ${isBoss ? 'landscape:w-auto' : 'landscape:w-28'}`}>
               <motion.div
                 initial={
                   isNewFloor
@@ -364,6 +367,28 @@ export default function RoomScreen() {
                   size={characterSize}
                 />
               </motion.div>
+
+              {isBoss && (
+                <motion.div
+                  initial={{ opacity: 0, x: 100, scale: 0.7, rotate: 8 }}
+                  animate={
+                    leaving
+                      ? { opacity: 0, scale: 0.6 }
+                      : { opacity: 1, x: 0, scale: 1, rotate: 0 }
+                  }
+                  transition={
+                    leaving
+                      ? { duration: ROOM_LEAVE.charDurationMs / 1000, ease: 'easeIn' }
+                      : {
+                          duration: introCfg.charDurationMs / 1000,
+                          delay: charDelayMs / 1000,
+                          ease: [0.34, 1.56, 0.64, 1],
+                        }
+                  }
+                >
+                  <DirectorMago animationState={magoState} size={magoSize} />
+                </motion.div>
+              )}
             </div>
 
             {/* Question + answers */}

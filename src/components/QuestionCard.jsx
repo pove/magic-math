@@ -4,14 +4,16 @@ export default function QuestionCard({ questionText, ageMode }) {
   const isYoung = ageMode === 'young'
   return (
     <motion.div
-      className="bg-white/10 backdrop-blur rounded-3xl border border-white/20 shadow-lg shadow-purple-500/30 px-8 py-6 text-center"
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      className="relative bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-xl shadow-purple-900/50 px-8 py-6 text-center"
+      initial={{ scale: 0.85, opacity: 0, y: -20 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 18 }}
     >
+      <span className="absolute -top-3 -left-2 text-2xl select-none" style={{ animation: 'floatEmoji 3s ease-in-out infinite' }}>✨</span>
+      <span className="absolute -bottom-2 -right-2 text-2xl select-none" style={{ animation: 'floatEmoji 3.6s ease-in-out infinite reverse' }}>⭐</span>
       <div
         className={`font-title text-white ${isYoung ? 'text-4xl uppercase' : 'text-3xl'}`}
-        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+        style={{ textShadow: '0 3px 10px rgba(0,0,0,0.6), 0 0 24px rgba(251,191,36,0.35)' }}
       >
         {isYoung ? questionText.toUpperCase() : questionText}
       </div>

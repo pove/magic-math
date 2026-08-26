@@ -1,5 +1,23 @@
+import { getNormalRoomCount } from './floorConfig.js'
+
 function rnd(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+// Interpola entre startVal (habitación 1) y finalVal (última habitación normal).
+// El jefe (room > totalRooms) siempre recibe finalVal.
+function rampValue(room, totalRooms, startVal, finalVal) {
+  if (totalRooms <= 1) return finalVal
+  const p = Math.min(1, Math.max(0, (room - 1) / (totalRooms - 1)))
+  return Math.round(startVal + (finalVal - startVal) * p)
+}
+
+// Va revelando elementos de una lista poco a poco a lo largo de las habitaciones,
+// para no mezclar todo el contenido de golpe en la primera habitación.
+function revealSubset(list, room, totalRooms) {
+  if (list.length <= 1) return list
+  const count = Math.min(list.length, Math.max(1, Math.ceil((room / totalRooms) * list.length)))
+  return list.slice(0, count)
 }
 
 function shuffle(arr) {
@@ -38,7 +56,8 @@ function generateWrongOptionsStr(correct, pool) {
 // ── YOUNG MODE ────────────────────────────────────────────────────────────────
 
 function youngNormal(floor, room) {
-  const isBoss = room === 4
+  const totalRooms = getNormalRoomCount(floor)
+  const isBoss = room > totalRooms
 
   if (floor <= 2) {
     const a = rnd(0, isBoss ? 10 : 8)
@@ -71,8 +90,11 @@ function youngNormal(floor, room) {
   }
 
   if (floor === 4) {
-    const a = rnd(0, 15)
-    const b = rnd(0, 20 - a)
+    // Repaso con rango numérico ampliado: empieza cerca de lo ya conocido (12)
+    // y sube hasta 20 a medida que se avanza de habitación.
+    const sumMax = rampValue(room, totalRooms, 12, 20)
+    const a = rnd(0, Math.max(0, sumMax - 5))
+    const b = rnd(0, sumMax - a)
     const correct = a + b
     const wrongs = generateWrongOptions(correct, 3, 0, 30)
     return {
@@ -86,8 +108,9 @@ function youngNormal(floor, room) {
   }
 
   if (floor === 5) {
-    const b = rnd(0, 15)
-    const a = rnd(b, 20)
+    const rangeMax = rampValue(room, totalRooms, 12, 20)
+    const b = rnd(0, Math.max(0, rangeMax - 5))
+    const a = rnd(b, rangeMax)
     const correct = a - b
     const wrongs = generateWrongOptions(correct, 3, 0, 30)
     return {
@@ -101,13 +124,14 @@ function youngNormal(floor, room) {
   }
 
   if (floor === 6) {
+    const rangeMax = rampValue(room, totalRooms, 12, 20)
     const ops = ['+', '-']
     const op = ops[rnd(0, 1)]
     let a, b, correct
     if (op === '+') {
-      a = rnd(0, 15); b = rnd(0, 20 - a); correct = a + b
+      a = rnd(0, Math.max(0, rangeMax - 5)); b = rnd(0, rangeMax - a); correct = a + b
     } else {
-      b = rnd(0, 15); a = rnd(b, 20); correct = a - b
+      b = rnd(0, Math.max(0, rangeMax - 5)); a = rnd(b, rangeMax); correct = a - b
     }
     const wrongs = generateWrongOptions(correct, 3, 0, 30)
     return {
@@ -140,7 +164,11 @@ function youngNormal(floor, room) {
     }
   }
 
-  const max = floor <= 9 ? 30 : 50
+  // Cada vez que se sube de "escalón" (nuevo tipo de interfaz + rango numérico)
+  // se rampa el rango dentro de la propia planta en vez de saltar de golpe.
+  const finalMax = floor <= 9 ? 30 : 50
+  const TIER_RAMP_START = { 8: 20, 10: 30 }
+  const max = rampValue(room, totalRooms, TIER_RAMP_START[floor] ?? finalMax, finalMax)
   const interfaceType = floor <= 9 ? '6_options' : 'keyboard'
   const opChoice = rnd(0, 2)
   let a, b, correct, questionText
@@ -207,6 +235,9 @@ function youngPro(floor, room) {
 // Planta 1-3: una tabla a la vez. Planta 4: repaso 2-4. Planta 5-6: tablas 5 y 6.
 // Planta 7: introduce el 7 con repaso 5-6. Planta 8-9: tablas 7-8 y 8-9.
 // Planta 10: gran repaso 2-9. Planta 11: tablas difíciles 10-12. Planta 12: repaso total.
+// Las plantas 4, 10 y 12 mezclan varias tablas de golpe, así que tienen habitaciones
+// extra (ver floorConfig.js) para revelar las tablas y subir el multiplicador poco a poco
+// en vez de exigir la mezcla completa desde la primera pregunta.
 const TABLE_BY_FLOOR = {
   1:  [2],
   2:  [3],
@@ -231,9 +262,15 @@ const MULTIPLIER_MAX_BY_FLOOR = {
 }
 
 function olderNormal(floor, room) {
-  const tables = TABLE_BY_FLOOR[floor] || [2]
+  const totalRooms = getNormalRoomCount(floor)
+  const allTables = TABLE_BY_FLOOR[floor] || [2]
+  // Cuando una planta mezcla varias tablas de repaso, no se presentan todas de
+  // golpe: se van revelando a medida que se avanza de habitación.
+  const tables = revealSubset(allTables, room, totalRooms)
   const table = tables[rnd(0, tables.length - 1)]
-  const multiplierMax = MULTIPLIER_MAX_BY_FLOOR[floor] || 10
+  // El multiplicador también sube en rampa (empezando por un repaso suave de la
+  // tabla) en vez de exigir el rango completo desde la primera pregunta.
+  const multiplierMax = rampValue(room, totalRooms, 5, MULTIPLIER_MAX_BY_FLOOR[floor] || 10)
   const multiplier = rnd(1, multiplierMax)
   const useDiv = floor === 12 && rnd(0, 1) === 1
   const interfaceType = floor <= 4 ? '4_options' : floor <= 9 ? '6_options' : 'keyboard'

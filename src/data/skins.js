@@ -1,3 +1,5 @@
+import { getBossRoom } from '../engine/floorConfig'
+
 export const SKINS = [
   // ── HAIR (8) — asignados a los huecos libres entre planta 2-11 ──
   // Huecos libres: F2R2, F3R3, F4R1, F5R2, F6R3, F8R2, F9R1, F11R1
@@ -56,9 +58,9 @@ export const SKINS = [
   { id: 'bottom_3', name: 'Leggings Verdes', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 3, unlockedAtRoom: 4, emoji: '💚', primaryColor: '#064e3b', secondaryColor: '#6ee7b7', shapeVariant: 3 },
   { id: 'shoes_3', name: 'Botas de Goma', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 3, unlockedAtRoom: 4, emoji: '👢', primaryColor: '#10b981', secondaryColor: '#6ee7b7', shapeVariant: 3 },
   // Floor 4 — Explorador del Jardín
-  { id: 'top_4', name: 'Chaleco Verde', slot: 'top', gender: 'unisex', unlockedAtFloor: 4, unlockedAtRoom: 4, emoji: '🦺', primaryColor: '#166534', secondaryColor: '#86efac', shapeVariant: 4 },
-  { id: 'bottom_4', name: 'Shorts Exploradores', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 4, unlockedAtRoom: 4, emoji: '🩳', primaryColor: '#92400e', secondaryColor: '#d97706', shapeVariant: 4 },
-  { id: 'shoes_4', name: 'Sandalias', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 4, unlockedAtRoom: 4, emoji: '👡', primaryColor: '#b45309', secondaryColor: '#fde68a', shapeVariant: 4 },
+  { id: 'top_4', name: 'Chaleco Verde', slot: 'top', gender: 'unisex', unlockedAtFloor: 4, unlockedAtRoom: getBossRoom(4), emoji: '🦺', primaryColor: '#166534', secondaryColor: '#86efac', shapeVariant: 4 },
+  { id: 'bottom_4', name: 'Shorts Exploradores', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 4, unlockedAtRoom: getBossRoom(4), emoji: '🩳', primaryColor: '#92400e', secondaryColor: '#d97706', shapeVariant: 4 },
+  { id: 'shoes_4', name: 'Sandalias', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 4, unlockedAtRoom: getBossRoom(4), emoji: '👡', primaryColor: '#b45309', secondaryColor: '#fde68a', shapeVariant: 4 },
   // Floor 5 — Artista Misterioso
   { id: 'top_5', name: 'Camiseta Marco Dorado', slot: 'top', gender: 'unisex', unlockedAtFloor: 5, unlockedAtRoom: 4, emoji: '🖼️', primaryColor: '#0f172a', secondaryColor: '#f59e0b', shapeVariant: 1 },
   { id: 'bottom_5', name: 'Pantalón Elegante Negro', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 5, unlockedAtRoom: 4, emoji: '🖤', primaryColor: '#1e293b', secondaryColor: '#475569', shapeVariant: 1 },
@@ -80,21 +82,21 @@ export const SKINS = [
   { id: 'bottom_9', name: 'Pantalón Estelar', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 9, unlockedAtRoom: 4, emoji: '🪐', primaryColor: '#020617', secondaryColor: '#1e3a5f', shapeVariant: 1 },
   { id: 'shoes_9', name: 'Zapatillas Luminosas', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 9, unlockedAtRoom: 4, emoji: '✨', primaryColor: '#1e3a5f', secondaryColor: '#60a5fa', shapeVariant: 1 },
   // Floor 10 — Consejero Real
-  { id: 'top_10', name: 'Capa Roja con Ribetes', slot: 'top', gender: 'unisex', unlockedAtFloor: 10, unlockedAtRoom: 4, emoji: '🦸', primaryColor: '#991b1b', secondaryColor: '#f59e0b', shapeVariant: 2 },
-  { id: 'bottom_10', name: 'Pantalón Real', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 10, unlockedAtRoom: 4, emoji: '👑', primaryColor: '#1e293b', secondaryColor: '#475569', shapeVariant: 2 },
-  { id: 'shoes_10', name: 'Zapatos Charol Dorado', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 10, unlockedAtRoom: 4, emoji: '👞', primaryColor: '#78350f', secondaryColor: '#fde68a', shapeVariant: 2 },
+  { id: 'top_10', name: 'Capa Roja con Ribetes', slot: 'top', gender: 'unisex', unlockedAtFloor: 10, unlockedAtRoom: getBossRoom(10), emoji: '🦸', primaryColor: '#991b1b', secondaryColor: '#f59e0b', shapeVariant: 2 },
+  { id: 'bottom_10', name: 'Pantalón Real', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 10, unlockedAtRoom: getBossRoom(10), emoji: '👑', primaryColor: '#1e293b', secondaryColor: '#475569', shapeVariant: 2 },
+  { id: 'shoes_10', name: 'Zapatos Charol Dorado', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 10, unlockedAtRoom: getBossRoom(10), emoji: '👞', primaryColor: '#78350f', secondaryColor: '#fde68a', shapeVariant: 2 },
   // Floor 11 — Jinete de Nubes
   { id: 'top_11', name: 'Chaqueta Vaporosa Blanca', slot: 'top', gender: 'unisex', unlockedAtFloor: 11, unlockedAtRoom: 4, emoji: '☁️', primaryColor: '#f0f9ff', secondaryColor: '#bae6fd', shapeVariant: 3 },
   { id: 'bottom_11', name: 'Pantalón Celeste Nube', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 11, unlockedAtRoom: 4, emoji: '🌤️', primaryColor: '#bfdbfe', secondaryColor: '#ede9fe', shapeVariant: 3 },
   { id: 'shoes_11', name: 'Zapatillas con Nubes', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 11, unlockedAtRoom: 4, emoji: '🌈', primaryColor: '#ffffff', secondaryColor: '#bae6fd', shapeVariant: 3 },
   // Floor 12 — Mago Supremo
-  { id: 'top_12', name: 'Túnica Dorada con Runas', slot: 'top', gender: 'unisex', unlockedAtFloor: 12, unlockedAtRoom: 4, emoji: '🪄', primaryColor: '#f59e0b', secondaryColor: '#fde68a', shapeVariant: 4 },
-  { id: 'bottom_12', name: 'Pantalón Mago Supremo', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 12, unlockedAtRoom: 4, emoji: '⚡', primaryColor: '#0f172a', secondaryColor: '#7c3aed', shapeVariant: 4 },
-  { id: 'shoes_12', name: 'Botas Mágicas con Estrellas', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 12, unlockedAtRoom: 4, emoji: '🌠', primaryColor: '#0f172a', secondaryColor: '#f59e0b', shapeVariant: 4 },
+  { id: 'top_12', name: 'Túnica Dorada con Runas', slot: 'top', gender: 'unisex', unlockedAtFloor: 12, unlockedAtRoom: getBossRoom(12), emoji: '🪄', primaryColor: '#f59e0b', secondaryColor: '#fde68a', shapeVariant: 4 },
+  { id: 'bottom_12', name: 'Pantalón Mago Supremo', slot: 'bottom', gender: 'unisex', unlockedAtFloor: 12, unlockedAtRoom: getBossRoom(12), emoji: '⚡', primaryColor: '#0f172a', secondaryColor: '#7c3aed', shapeVariant: 4 },
+  { id: 'shoes_12', name: 'Botas Mágicas con Estrellas', slot: 'shoes', gender: 'unisex', unlockedAtFloor: 12, unlockedAtRoom: getBossRoom(12), emoji: '🌠', primaryColor: '#0f172a', secondaryColor: '#f59e0b', shapeVariant: 4 },
 ]
 
 export const getSkinsBySlot = (slot) => SKINS.filter((s) => s.slot === slot)
 export const getSkinById = (id) => SKINS.find((s) => s.id === id)
-export const getOutfitForFloor = (floor) => SKINS.filter((s) => s.unlockedAtFloor === floor && s.unlockedAtRoom === 4)
+export const getOutfitForFloor = (floor) => SKINS.filter((s) => s.unlockedAtFloor === floor && s.unlockedAtRoom === getBossRoom(floor))
 export const getAccessoryForFloorRoom = (floor, room) =>
-  SKINS.find((s) => s.unlockedAtFloor === floor && s.unlockedAtRoom === room && s.unlockedAtRoom < 4)
+  SKINS.find((s) => s.unlockedAtFloor === floor && s.unlockedAtRoom === room && room !== getBossRoom(floor))

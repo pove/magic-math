@@ -57,7 +57,13 @@ function ActiveProfileGuard({ children }) {
 
 function AppRoutes() {
   const { activeProfile } = useGame()
-  const roomKey = activeProfile ? `${activeProfile.currentFloor}-${activeProfile.currentRoom}` : 'none'
+  const location = useLocation()
+  const practiceFloor = location.state?.practiceFloor
+  const roomKey = practiceFloor
+    ? `practice-${practiceFloor}-${location.state?.practiceRoom || 1}`
+    : activeProfile
+      ? `${activeProfile.currentFloor}-${activeProfile.currentRoom}`
+      : 'none'
 
   return (
     <ActiveProfileGuard>

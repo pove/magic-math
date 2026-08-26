@@ -1,8 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect } from 'react'
 import { getSkinById } from '../data/skins'
+import { sfx } from '../engine/sfx'
 
 export default function RewardModal({ skinId, onClose, isOutfit = false }) {
   const skin = skinId ? getSkinById(skinId) : null
+
+  useEffect(() => { if (skin) sfx.reward() }, [skin])
+
   if (!skin) return null
 
   return (
@@ -59,7 +64,7 @@ export default function RewardModal({ skinId, onClose, isOutfit = false }) {
           </motion.div>
 
           <motion.button
-            onClick={onClose}
+            onClick={() => { sfx.click(); onClose() }}
             className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-xl px-10 py-3 rounded-full shadow-lg"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

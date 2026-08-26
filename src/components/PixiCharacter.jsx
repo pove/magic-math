@@ -6,6 +6,14 @@ const SKIN_LIGHT = 0xfddba8
 const SKIN_MID   = 0xf9c584
 const SKIN_DARK  = 0xe8a96b
 
+// The root container's pivot/position anchor. Kept near the top of the head
+// (rather than mid-body) so a scale-up "pop" grows the body downward instead
+// of pushing a tall hat above the canvas edge.
+const ROOT_ANCHOR_Y = 20
+// Correct-answer hop height, tuned so offsetY + the scale pop never pushes
+// even the tallest hat variant above the canvas top (see ROOT_ANCHOR_Y).
+const JUMP_HEIGHT = 16
+
 function hexNum(str) {
   if (!str) return 0xffffff
   return parseInt(str.replace('#', ''), 16)
@@ -355,18 +363,6 @@ function drawAccessory(g, skin) {
   }
 }
 
-// ── PARTICLES ────────────────────────────────────────────────────────────────
-function createParticles(container, count = 12) {
-  const colors = [0xf59e0b, 0xec4899, 0x60a5fa, 0x34d399, 0xfde68a]
-  return Array.from({ length: count }, (_, i) => {
-    const g = new Graphics()
-    g.star(0, 0, 5, 6, 3); g.fill({ color: colors[i % colors.length] })
-    g.x = 100; g.y = 150; g.alpha = 0
-    container.addChild(g)
-    return { g, angle: (i / count) * Math.PI * 2, speed: 1.5 + Math.random() * 1.5, life: 0 }
-  })
-}
-
 // ── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function PixiCharacter({
   gender = 'boy',
@@ -385,8 +381,6 @@ export default function PixiCharacter({
     offsetY: 0, offsetX: 0,
     scale: 1, rotation: 0,
     phaseT: 0,
-    particles: [],
-    particleContainer: null,
     rainbowActive: false,
   })
   const layersRef = useRef({})
@@ -435,8 +429,8 @@ export default function PixiCharacter({
 
       // root container — whole character animates on this
       const root = new Container()
-      root.pivot.set(100, 175)
-      root.position.set(100, 175)
+      root.pivot.set(100, ROOT_ANCHOR_Y)
+      root.position.set(100, ROOT_ANCHOR_Y)
       app.stage.addChild(root)
 
       // ── build layers ──────────────────────────────────────────────
@@ -458,9 +452,6 @@ export default function PixiCharacter({
       const hat       = new Graphics(); root.addChild(hat)
       const glasses   = new Graphics(); root.addChild(glasses)
       const accessory = new Graphics(); root.addChild(accessory)
-
-      const particleCont = new Container(); root.addChild(particleCont)
-      stateRef.current.particleContainer = particleCont
 
       layersRef.current = { wings, shoes, bottom, top, hairBack, body, hairFront, hat, glasses, accessory, root }
 
@@ -496,27 +487,17 @@ export default function PixiCharacter({
         } else if (anim === 'correctAnswer') {
           const pt = sr.phaseT; sr.phaseT += dt
           if (pt < 0.22) {
-            sr.offsetY = -35 * (pt / 0.22); sr.scale = 1 + 0.12 * (pt / 0.22); sr.mouthOpen = 0.8
+            sr.offsetY = -JUMP_HEIGHT * (pt / 0.22); sr.scale = 1 + 0.12 * (pt / 0.22); sr.mouthOpen = 0.8
           } else if (pt < 0.45) {
             const p = (pt - 0.22) / 0.23
-            sr.offsetY = -35 * (1 - p); sr.scale = 1 + 0.12 * (1 - p); sr.mouthOpen = 0.8
+            sr.offsetY = -JUMP_HEIGHT * (1 - p); sr.scale = 1 + 0.12 * (1 - p); sr.mouthOpen = 0.8
           } else if (pt < 0.55) {
             sr.offsetY = 0; sr.scale = 1; sr.mouthOpen = 0.5
+          } else if (pt < 0.9) {
+            sr.mouthOpen = 0.5
           } else {
-            if (sr.particles.length === 0) sr.particles = createParticles(particleCont, 14)
-            if (!sr.particles.some(p => p.life < 1)) {
-              sr.animState = 'idle'; sr.phaseT = 0
-              sr.particles.forEach(p => p.g.destroy()); sr.particles = []
-              particleCont.removeChildren(); sr.mouthOpen = 0
-            }
+            sr.animState = 'idle'; sr.phaseT = 0; sr.mouthOpen = 0
           }
-          sr.particles.forEach(p => {
-            p.life += dt * 1.4; if (p.life > 1) { p.g.alpha = 0; return }
-            const e = 1 - p.life * p.life
-            p.g.x = 100 + Math.cos(p.angle) * p.speed * p.life * 55
-            p.g.y = 150 + Math.sin(p.angle) * p.speed * p.life * 55 - p.life * 30
-            p.g.alpha = e; p.g.scale.set(e * 1.2)
-          })
 
         } else if (anim === 'wrongAnswer') {
           sr.phaseT += dt; const pt = sr.phaseT
@@ -558,7 +539,7 @@ export default function PixiCharacter({
 
         // apply root transform
         const R = layersRef.current.root
-        if (R) { R.x = 100 + sr.offsetX; R.y = 175 + sr.offsetY; R.scale.set(sr.scale); R.rotation = sr.rotation }
+        if (R) { R.x = 100 + sr.offsetX; R.y = ROOT_ANCHOR_Y + sr.offsetY; R.scale.set(sr.scale); R.rotation = sr.rotation }
 
         // redraw face every frame (expression changes)
         const B = layersRef.current.body
@@ -589,11 +570,6 @@ export default function PixiCharacter({
   useEffect(() => {
     const sr = stateRef.current
     sr.animState = animationState; sr.phaseT = 0
-    if (animationState !== 'idle') {
-      sr.particles.forEach(p => { try { p.g.destroy() } catch (_) {} })
-      sr.particles = []
-      stateRef.current.particleContainer?.removeChildren()
-    }
     if (animationState === 'idle') {
       sr.offsetX = 0; sr.offsetY = 0; sr.scale = 1; sr.rotation = 0
       sr.mouthOpen = 0; sr.eyeScaleY = 1; sr.rainbowActive = false

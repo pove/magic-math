@@ -6,6 +6,8 @@ import { useGame } from '../context/GameContext'
 import { getLevelData } from '../data/levels'
 import { SKINS } from '../data/skins'
 import DirectorMago from '../components/DirectorMago'
+import SceneBackground from '../components/SceneBackground'
+import { sfx } from '../engine/sfx'
 
 export default function VictoryFloorScreen() {
   const { activeProfile } = useGame()
@@ -22,13 +24,16 @@ export default function VictoryFloorScreen() {
   useEffect(() => {
     if (fired.current) return
     fired.current = true
+    sfx.victory()
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } })
     setTimeout(() => confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 } }), 300)
     setTimeout(() => confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 } }), 600)
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+      <SceneBackground floor={prevFloor}>
+        <div className="h-full w-full flex flex-col items-center justify-center p-6 text-center">
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 10 }}>
         <DirectorMago animationState="applaud" size={160} />
       </motion.div>
@@ -65,7 +70,7 @@ export default function VictoryFloorScreen() {
       )}
 
       <motion.button
-        onClick={() => navigate('/wardrobe')}
+        onClick={() => { sfx.click(); navigate('/wardrobe') }}
         className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-2xl px-10 py-4 rounded-full shadow-lg"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -83,6 +88,8 @@ export default function VictoryFloorScreen() {
       >
         Continuar al castillo
       </motion.button>
+      </div>
+      </SceneBackground>
     </div>
   )
 }

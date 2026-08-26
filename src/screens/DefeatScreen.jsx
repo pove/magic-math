@@ -4,7 +4,9 @@ import { motion } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import DirectorMago from '../components/DirectorMago'
 import Character from '../components/PixiCharacter'
-import FloorBackground from '../components/FloorBackground'
+import SceneBackground from '../components/SceneBackground'
+import { sfx } from '../engine/sfx'
+import { useEffect } from 'react'
 
 const ENCOURAGING = [
   '¡Los grandes magos aprenden de sus errores! ¡Tú puedes!',
@@ -19,6 +21,8 @@ export default function DefeatScreen() {
   const navigate = useNavigate()
   const [msg] = useState(() => ENCOURAGING[Math.floor(Math.random() * ENCOURAGING.length)])
 
+  useEffect(() => { sfx.defeat() }, [])
+
   const handleRetry = () => {
     resetFloor(activeProfile.id)
     navigate('/room')
@@ -28,7 +32,7 @@ export default function DefeatScreen() {
 
   return (
     <div className="h-screen w-screen overflow-hidden">
-      <FloorBackground floor={activeProfile.currentFloor}>
+      <SceneBackground floor={activeProfile.currentFloor}>
         <div className="h-full flex flex-col items-center justify-center p-6 gap-6 text-center">
           <div className="flex gap-6 items-end">
             <DirectorMago animationState="sad" size={130} />
@@ -60,21 +64,21 @@ export default function DefeatScreen() {
             initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }}
           >
             <motion.button
-              onClick={handleRetry}
+              onClick={() => { sfx.click(); handleRetry() }}
               className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-2xl px-10 py-4 rounded-full shadow-lg"
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             >
               ¡INTENTARLO DE NUEVO! 🪄
             </motion.button>
             <motion.button
-              onClick={() => navigate('/castle')}
+              onClick={() => { sfx.click(); navigate('/castle') }}
               className="text-white/50 font-body underline"
             >
               Volver al castillo
             </motion.button>
           </motion.div>
         </div>
-      </FloorBackground>
+      </SceneBackground>
     </div>
   )
 }

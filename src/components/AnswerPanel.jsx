@@ -1,18 +1,28 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { sfx } from '../engine/sfx'
 
-function OptionButton({ value, onClick, disabled, ageMode }) {
+function OptionButton({ value, onClick, disabled, ageMode, index = 0 }) {
   const isYoung = ageMode === 'young'
   return (
     <motion.button
-      onClick={() => onClick(value)}
+      onClick={() => { sfx.click(); onClick(value) }}
       disabled={disabled}
-      className={`bg-white/20 hover:bg-white/40 rounded-2xl border-2 border-white/30 hover:border-amber-400 font-title text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isYoung ? 'text-2xl py-4 px-4' : 'text-xl py-3 px-4'}`}
-      style={{ minHeight: '56px' }}
-      whileHover={{ scale: 1.04 }}
-      whileTap={{ scale: 0.95 }}
+      className="relative bg-gradient-to-b from-white/25 to-white/10 hover:from-amber-300/30 hover:to-white/15 backdrop-blur-md rounded-2xl border-2 border-white/30 hover:border-amber-400 font-title text-white shadow-lg shadow-purple-900/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors overflow-hidden"
+      style={{ minHeight: '64px' }}
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
+      whileHover={disabled ? {} : { scale: 1.06, rotate: [-0.5, 0.5, 0] }}
+      whileTap={disabled ? {} : { scale: 0.92 }}
     >
-      {isYoung ? String(value).toUpperCase() : value}
+      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+      <span
+        className={isYoung ? 'text-2xl py-4 px-4 inline-block uppercase' : 'text-xl py-3 px-4 inline-block'}
+        style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
+      >
+        {isYoung ? String(value).toUpperCase() : value}
+      </span>
     </motion.button>
   )
 }
@@ -22,6 +32,7 @@ function VirtualKeyboard({ onAnswer, ageMode }) {
   const isYoung = ageMode === 'young'
 
   const handleKey = (k) => {
+    sfx.click()
     if (k === '⌫') { setInput((p) => p.slice(0, -1)); return }
     if (k === '✓') { if (input !== '') { onAnswer(Number(input)); setInput('') }; return }
     if (input.length < 5) setInput((p) => p + k)
@@ -74,6 +85,7 @@ export default function AnswerPanel({ interfaceType, options = [], onAnswer, dis
           onClick={onAnswer}
           disabled={disabled}
           ageMode={ageMode}
+          index={i}
         />
       ))}
     </div>

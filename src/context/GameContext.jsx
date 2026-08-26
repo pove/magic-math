@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { getBossRoom } from '../engine/floorConfig'
 
 const LS_KEY = 'magic_school_profiles'
 const LS_ACTIVE = 'magic_school_active_id'
@@ -82,10 +83,11 @@ function reducer(state, action) {
     case 'ADVANCE_ROOM': {
       const profiles = state.profiles.map((p) => {
         if (p.id !== action.payload) return p
-        if (p.currentRoom >= 4) {
+        const bossRoom = getBossRoom(p.currentFloor)
+        if (p.currentRoom >= bossRoom) {
           // Advance floor
           const nextFloor = p.currentFloor + 1
-          if (nextFloor > 12) return { ...p, currentRoom: 4 } // Will trigger victory
+          if (nextFloor > 12) return { ...p, currentRoom: bossRoom } // Will trigger victory
           return { ...p, currentFloor: nextFloor, currentRoom: 1, lives: 3 }
         }
         return { ...p, currentRoom: p.currentRoom + 1 }

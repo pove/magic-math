@@ -33,7 +33,7 @@ function FloorTile({ level, status, onClick }) {
           Planta {level}
         </div>
         <div className={`font-body text-xs truncate ${isActive ? 'text-white' : isDone ? 'text-white/70' : 'text-white/30'}`}>
-          {data.name}
+          {data.name}{isDone ? ' · 🔁 Repasar' : ''}
         </div>
       </div>
     </motion.button>
@@ -104,14 +104,23 @@ export default function CastleScreen() {
         {/* Floor list - ascending 1 to 12 */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="max-w-md mx-auto flex flex-col gap-2">
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((floor) => (
-              <FloorTile
-                key={floor}
-                level={floor}
-                status={getStatus(floor)}
-                onClick={() => navigate('/room')}
-              />
-            ))}
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((floor) => {
+              const status = getStatus(floor)
+              return (
+                <FloorTile
+                  key={floor}
+                  level={floor}
+                  status={status}
+                  onClick={() => {
+                    if (status === 'done') {
+                      navigate('/room', { state: { practiceFloor: floor, practiceRoom: 1, practiceLives: 3 } })
+                    } else {
+                      navigate('/room')
+                    }
+                  }}
+                />
+              )
+            })}
           </div>
         </div>
       </div>

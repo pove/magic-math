@@ -111,7 +111,6 @@ export async function generateSaveCode(profile) {
   writer.write(profile.completedGame ? 1 : 0, 1)
   writer.write(profile.newGamePlus ? 1 : 0, 1)
   writer.write(Math.max(0, MODES.indexOf(profile.currentMode)), 2)
-  writer.write(Math.min(profile.score || 0, 0xffff), 16)
 
   let modesMask = 0
   MODES.forEach((mode, i) => {
@@ -157,7 +156,6 @@ export async function decodeSaveCode(rawCode) {
   const completedGame = !!reader.read(1)
   const newGamePlus = !!reader.read(1)
   const currentMode = MODES[reader.read(2)] || 'normal'
-  const score = reader.read(16)
   const modesMask = reader.read(4)
   const unlockedModes = MODES.filter((_, i) => modesMask & (1 << i))
   if (!unlockedModes.includes('normal')) unlockedModes.unshift('normal')
@@ -184,7 +182,7 @@ export async function decodeSaveCode(rawCode) {
     currentFloor,
     currentRoom,
     lives: 3,
-    score,
+    score: 0,
     completedGame,
     newGamePlus,
     currentMode,

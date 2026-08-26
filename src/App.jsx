@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { GameProvider, useGame } from './context/GameContext'
 
 import ProfilesScreen from './screens/ProfilesScreen'
@@ -86,11 +86,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <GameProvider>
-      <BrowserRouter>
+      <HashRouter>
         <OrientationGuard>
           <AppRoutes />
         </OrientationGuard>
-      </BrowserRouter>
+      </HashRouter>
     </GameProvider>
   )
 }

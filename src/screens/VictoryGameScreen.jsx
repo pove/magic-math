@@ -5,11 +5,14 @@ import confetti from 'canvas-confetti'
 import { useGame } from '../context/GameContext'
 import DirectorMago from '../components/DirectorMago'
 import Character from '../components/PixiCharacter'
+import useViewport from '../hooks/useViewport'
 
 export default function VictoryGameScreen() {
   const { activeProfile, completeGame, startNewGamePlus } = useGame()
   const navigate = useNavigate()
   const fired = useRef(false)
+  const { isCompact, isShort } = useViewport()
+  const characterSize = isShort ? 95 : isCompact ? 110 : 140
 
   useEffect(() => {
     if (fired.current || !activeProfile) return
@@ -39,7 +42,7 @@ export default function VictoryGameScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#000000] via-[#1c1405] to-[#0d0d0d] flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+    <div className="h-dvh bg-gradient-to-br from-[#000000] via-[#1c1405] to-[#0d0d0d] flex flex-col items-center justify-center p-4 sm:p-6 text-center overflow-y-auto">
       {/* Stars */}
       {Array.from({ length: 30 }).map((_, i) => (
         <div
@@ -54,24 +57,24 @@ export default function VictoryGameScreen() {
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}
       >
         <motion.div
-          className="text-8xl"
+          className="text-5xl sm:text-8xl"
           animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }}
           transition={{ duration: 2, repeat: Infinity }}
         >🪄</motion.div>
 
-        <div className="flex gap-6 items-end">
-          <DirectorMago animationState="applaud" size={140} />
-          <Character gender={activeProfile.gender} equippedSkins={activeProfile.equippedSkins} animationState="newSkin" size={140} />
+        <div className="flex gap-3 sm:gap-6 items-end">
+          <DirectorMago animationState="applaud" size={characterSize} />
+          <Character gender={activeProfile.gender} equippedSkins={activeProfile.equippedSkins} animationState="newSkin" size={characterSize} />
         </div>
 
         <motion.div
           initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}
         >
-          <div className="font-title text-amber-400 text-4xl mb-2">
+          <div className="font-title text-amber-400 text-2xl sm:text-4xl mb-2">
             ¡FELICIDADES, MAGO SUPREMO!
           </div>
-          <div className="font-title text-white text-3xl mb-4">{activeProfile.name}</div>
-          <div className="font-body text-white/70 text-lg max-w-md">
+          <div className="font-title text-white text-xl sm:text-3xl mb-4">{activeProfile.name}</div>
+          <div className="font-body text-white/70 text-sm sm:text-lg max-w-md">
             Has superado todos los exámenes del Director Mago y alcanzado lo más alto de la Torre Mayor.
             La Varita Encantada es ahora tuya. ¡Eres un verdadero mago!
           </div>
@@ -84,7 +87,7 @@ export default function VictoryGameScreen() {
           {canUnlockPro && (
             <motion.button
               onClick={() => handleNewGamePlus('pro')}
-              className="bg-gradient-to-r from-purple-700 to-indigo-600 text-white font-title text-xl px-8 py-4 rounded-full shadow-lg border border-purple-400"
+              className="bg-gradient-to-r from-purple-700 to-indigo-600 text-white font-title text-base sm:text-xl px-4 sm:px-8 py-3 sm:py-4 rounded-full shadow-lg border border-purple-400"
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             >
               ⚡ NUEVA PARTIDA+ (MODO PRO)
@@ -93,7 +96,7 @@ export default function VictoryGameScreen() {
           {canUnlockSuperPro && (
             <motion.button
               onClick={() => handleNewGamePlus('super-pro')}
-              className="bg-gradient-to-r from-pink-700 to-red-600 text-white font-title text-xl px-8 py-4 rounded-full shadow-lg border border-pink-400"
+              className="bg-gradient-to-r from-pink-700 to-red-600 text-white font-title text-base sm:text-xl px-4 sm:px-8 py-3 sm:py-4 rounded-full shadow-lg border border-pink-400"
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             >
               🔥 NUEVA PARTIDA++ (MODO SUPER-PRO)
@@ -102,7 +105,7 @@ export default function VictoryGameScreen() {
           {canUnlockSuperChachi && (
             <motion.button
               onClick={() => handleNewGamePlus('super-chachi')}
-              className="bg-gradient-to-r from-amber-600 to-yellow-500 text-white font-title text-xl px-8 py-4 rounded-full shadow-lg border border-amber-300"
+              className="bg-gradient-to-r from-amber-600 to-yellow-500 text-white font-title text-base sm:text-xl px-4 sm:px-8 py-3 sm:py-4 rounded-full shadow-lg border border-amber-300"
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             >
               ⏱️ NUEVA PARTIDA+++ (MODO SUPER-CHACHI)

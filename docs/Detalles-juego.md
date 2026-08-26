@@ -34,4 +34,4 @@ Nueva partida+ (modos difícil. Al pasarse el juego una vez, se desbloquea el mo
 Las preguntas son en texto, por simplificar y no tener que poner voz). Para el nivel de 5 años, el texto está siempre en mayúsculas, para la de 8-9 años, texto normal con mayúsculas y minúsculas.
 
 La arquitectura es pure react con localStorage. Y puede guardar varias partidas a la vez, de diferentes jugadores en el mismo dispositivo. 
-Está pensado para jugar sólo en horizontal, pero en distintas resoluciones y tamaños de pantalla (desde un móvil, a una tablet).
+Está pensado para jugar en cualquier orientación y en distintas resoluciones y tamaños de pantalla (desde un móvil, a una tablet). En vertical el personaje se coloca encima de la pregunta en lugar de al lado, que es lo que permite jugar en un móvil alargado sin girarlo.

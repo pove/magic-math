@@ -73,21 +73,23 @@ export default function ProfilesScreen() {
   const profile = deleteTarget ? state.profiles.find((p) => p.id === deleteTarget) : null
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex flex-col items-center justify-center p-6 overflow-hidden">
+    <div className="relative h-dvh bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto">
       <Stars />
 
       <motion.div
-        className="text-center mb-8 z-10"
+        className="text-center mb-6 sm:mb-8 z-10 shrink-0"
         initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
-        <div className="text-6xl mb-2">🪄</div>
-        <h1 className="font-title text-4xl text-amber-400">Escuela de Magia</h1>
-        <p className="font-body text-white/60 text-lg">En busca de la Varita Encantada</p>
+        <div className="text-4xl sm:text-6xl mb-2">🪄</div>
+        <h1 className="font-title text-2xl sm:text-4xl text-amber-400">Escuela de Magia</h1>
+        <p className="font-body text-white/60 text-sm sm:text-lg">En busca de la Varita Encantada</p>
       </motion.div>
 
       <div className="z-10 w-full max-w-2xl">
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        {/* One card per row on a phone — two 170px cards leave no room for the
+            character next to the name */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
           {state.profiles.map((p, i) => (
             <motion.div
               key={p.id}

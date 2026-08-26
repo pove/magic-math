@@ -3,6 +3,13 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      screens: {
+        // Height-based, not width-based: a phone in landscape has plenty of
+        // width and almost no height, which is the axis that actually runs
+        // out. Declared last so it overrides the sm:/md: rules it competes
+        // with.
+        short: { raw: '(max-height: 480px)' },
+      },
       fontFamily: {
         title: ['"Fredoka One"', 'cursive'],
         body: ['"Nunito"', 'sans-serif'],

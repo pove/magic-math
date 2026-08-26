@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import { SKINS } from '../data/skins'
+import useViewport from '../hooks/useViewport'
 import Character from '../components/PixiCharacter'
 
 const SLOTS = [
@@ -20,6 +21,10 @@ export default function WardrobeScreen() {
   const { activeProfile, equipSkin } = useGame()
   const navigate = useNavigate()
   const [activeSlot, setActiveSlot] = useState('hat')
+  const { isPortrait, isCompact } = useViewport()
+  // Portrait shows the preview as a banner above the grid, so it has to stay
+  // short enough not to eat the items' vertical room.
+  const previewSize = isPortrait ? (isCompact ? 96 : 120) : 160
 
   if (!activeProfile) return null
 
@@ -34,13 +39,13 @@ export default function WardrobeScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex flex-col overflow-hidden">
+    <div className="h-dvh bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-        <h1 className="font-title text-amber-400 text-2xl">👗 Mi Armario</h1>
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-4 border-b border-white/10">
+        <h1 className="font-title text-amber-400 text-lg sm:text-2xl">👗 Mi Armario</h1>
         <motion.button
           onClick={() => navigate('/castle')}
-          className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title px-6 py-2 rounded-full"
+          className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title px-4 sm:px-6 py-2 rounded-full text-sm sm:text-base whitespace-nowrap"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -48,16 +53,18 @@ export default function WardrobeScreen() {
         </motion.button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      {/* Portrait puts the preview above the items; a 192px sidebar would
+          leave the grid barely 200px wide on a phone. */}
+      <div className="flex-1 flex flex-col landscape:flex-row overflow-hidden">
         {/* Character preview */}
-        <div className="flex flex-col items-center justify-center w-48 p-4 border-r border-white/10 shrink-0">
+        <div className="flex flex-row landscape:flex-col items-center justify-center gap-3 landscape:gap-0 w-full landscape:w-48 p-2 sm:p-4 border-b landscape:border-b-0 landscape:border-r border-white/10 shrink-0">
           <Character
             gender={activeProfile.gender}
             equippedSkins={activeProfile.equippedSkins}
             animationState="idle"
-            size={160}
+            size={previewSize}
           />
-          <div className="font-title text-white/60 text-sm mt-2">{activeProfile.name}</div>
+          <div className="font-title text-white/60 text-sm landscape:mt-2">{activeProfile.name}</div>
         </div>
 
         {/* Slot tabs + items */}

@@ -7,6 +7,7 @@ import { getLevelData } from '../data/levels'
 import { SKINS } from '../data/skins'
 import DirectorMago from '../components/DirectorMago'
 import SceneBackground from '../components/SceneBackground'
+import useViewport from '../hooks/useViewport'
 import { sfx } from '../engine/sfx'
 
 export default function VictoryFloorScreen() {
@@ -14,6 +15,8 @@ export default function VictoryFloorScreen() {
   const navigate = useNavigate()
   const { state } = useLocation()
   const fired = useRef(false)
+  const { isCompact, isShort } = useViewport()
+  const directorSize = isShort ? 110 : isCompact ? 130 : 160
 
   const floor = activeProfile?.currentFloor || 1
   const prevFloor = floor > 1 ? floor - 1 : floor
@@ -31,11 +34,11 @@ export default function VictoryFloorScreen() {
   }, [])
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+    <div className="h-dvh w-full overflow-hidden">
       <SceneBackground floor={prevFloor}>
-        <div className="h-full w-full flex flex-col items-center justify-center p-6 text-center">
-      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 10 }}>
-        <DirectorMago animationState="applaud" size={160} />
+        <div className="h-full w-full flex flex-col items-center justify-center p-4 sm:p-6 text-center overflow-y-auto">
+      <motion.div className="shrink-0" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 10 }}>
+        <DirectorMago animationState="applaud" size={directorSize} />
       </motion.div>
 
       <motion.div
@@ -44,12 +47,12 @@ export default function VictoryFloorScreen() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <div className="font-title text-amber-400 text-4xl mb-1">
+        <div className="font-title text-amber-400 text-2xl sm:text-4xl mb-1">
           ¡PLANTA {prevFloor} SUPERADA!
         </div>
-        <div className="font-title text-white text-2xl mb-1">{levelData.name}</div>
+        <div className="font-title text-white text-lg sm:text-2xl mb-1">{levelData.name}</div>
         {outfitItems.length > 0 && (
-          <div className="font-body text-white/60 text-lg mb-6">
+          <div className="font-body text-white/60 text-base sm:text-lg mb-4 sm:mb-6">
             Nuevo conjunto desbloqueado en tu armario
           </div>
         )}
@@ -57,13 +60,13 @@ export default function VictoryFloorScreen() {
 
       {outfitItems.length > 0 && (
         <motion.div
-          className="flex gap-4 justify-center mb-8 flex-wrap"
+          className="flex gap-2 sm:gap-4 justify-center mb-4 sm:mb-8 flex-wrap"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
         >
           {outfitItems.map((item) => (
-            <div key={item.id} className="flex flex-col items-center gap-1 bg-white/10 rounded-2xl p-4 border border-amber-400/50">
-              <span className="text-4xl">{item.emoji}</span>
-              <span className="font-body text-white text-sm">{item.name}</span>
+            <div key={item.id} className="flex flex-col items-center gap-1 bg-white/10 rounded-2xl p-2 sm:p-4 border border-amber-400/50">
+              <span className="text-3xl sm:text-4xl">{item.emoji}</span>
+              <span className="font-body text-white text-xs sm:text-sm">{item.name}</span>
             </div>
           ))}
         </motion.div>
@@ -71,7 +74,7 @@ export default function VictoryFloorScreen() {
 
       <motion.button
         onClick={() => { sfx.click(); navigate('/wardrobe') }}
-        className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-2xl px-10 py-4 rounded-full shadow-lg"
+        className="shrink-0 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-lg sm:text-2xl px-6 sm:px-10 py-3 sm:py-4 rounded-full shadow-lg"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.7 }}

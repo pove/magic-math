@@ -14,7 +14,8 @@ npm install
 npm run dev
 ```
 
-Abre http://localhost:5173 en el navegador **en modo horizontal**.
+Abre http://localhost:5173 en el navegador. El juego funciona tanto en
+horizontal como en vertical, en móvil, tablet y escritorio.
 
 ## Build para producción
 

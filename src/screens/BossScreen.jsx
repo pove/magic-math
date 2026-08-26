@@ -5,6 +5,7 @@ import { useGame } from '../context/GameContext'
 import { JOKES } from '../data/jokes'
 import DirectorMago from '../components/DirectorMago'
 import SceneBackground from '../components/SceneBackground'
+import useViewport from '../hooks/useViewport'
 import { sfx } from '../engine/sfx'
 
 const usedJokesSession = new Set()
@@ -24,6 +25,8 @@ export default function BossScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const [joke] = useState(getRandomJoke)
+  const { isCompact, isShort } = useViewport()
+  const directorSize = isShort ? 110 : isCompact ? 140 : 170
 
   const practiceState = location.state?.practiceFloor
     ? { practiceFloor: location.state.practiceFloor, practiceRoom: location.state.practiceRoom, practiceLives: location.state.practiceLives }
@@ -33,9 +36,9 @@ export default function BossScreen() {
   if (!activeProfile) return null
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="h-dvh w-full overflow-hidden">
       <SceneBackground floor={displayFloor} introLevel="none">
-        <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
+        <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto">
           <button
             onClick={() => { sfx.click(); navigate('/castle') }}
             className="absolute top-4 left-4 text-white/50 hover:text-white/90 text-xl transition-colors"
@@ -46,30 +49,31 @@ export default function BossScreen() {
             animate={{ x: 0, opacity: 1, rotate: 0 }}
             transition={{ type: 'spring', damping: 14 }}
             onAnimationComplete={() => sfx.magic()}
+            className="shrink-0"
           >
-            <DirectorMago animationState="idle" size={170} talking />
+            <DirectorMago animationState="idle" size={directorSize} talking />
           </motion.div>
 
           <motion.div
-            className="max-w-lg w-full bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-xl shadow-purple-900/50 p-6 text-center"
+            className="max-w-lg w-full bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-xl shadow-purple-900/50 p-4 sm:p-6 text-center"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.4, type: 'spring', stiffness: 200, damping: 18 }}
           >
-            <div className="font-title text-amber-400 text-xl mb-3" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+            <div className="font-title text-amber-400 text-lg sm:text-xl mb-3" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
               ¡Bien hecho, pequeño mago! Antes del examen...
             </div>
-            <div className="font-body text-white/80 text-base italic mb-1">
+            <div className="font-body text-white/80 text-sm sm:text-base italic mb-1">
               ¿A que no sabes este chiste?
             </div>
-            <div className="font-title text-white text-lg leading-snug mt-3">
+            <div className="font-title text-white text-base sm:text-lg leading-snug mt-3">
               {joke}
             </div>
           </motion.div>
 
           <motion.button
             onClick={() => { sfx.whoosh(); navigate('/room', practiceState ? { state: practiceState } : undefined) }}
-            className="bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 text-white font-title text-2xl px-10 py-4 rounded-full shadow-xl shadow-purple-900/60 border-2 border-white/30"
+            className="shrink-0 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 text-white font-title text-lg sm:text-2xl px-6 sm:px-10 py-3 sm:py-4 rounded-full shadow-xl shadow-purple-900/60 border-2 border-white/30"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1, scale: [1, 1.04, 1] }}
             transition={{ delay: 0.8, scale: { duration: 1.4, repeat: Infinity } }}

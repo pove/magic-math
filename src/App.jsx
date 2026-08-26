@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { GameProvider, useGame } from './context/GameContext'
 
@@ -11,38 +10,6 @@ import WardrobeScreen from './screens/WardrobeScreen'
 import VictoryFloorScreen from './screens/VictoryFloorScreen'
 import VictoryGameScreen from './screens/VictoryGameScreen'
 import DefeatScreen from './screens/DefeatScreen'
-
-function OrientationGuard({ children }) {
-  const [isPortrait, setIsPortrait] = useState(false)
-
-  useEffect(() => {
-    const check = () => {
-      setIsPortrait(window.innerHeight > window.innerWidth && window.innerWidth < 768)
-    }
-    check()
-    window.addEventListener('resize', check)
-    window.addEventListener('orientationchange', check)
-    return () => {
-      window.removeEventListener('resize', check)
-      window.removeEventListener('orientationchange', check)
-    }
-  }, [])
-
-  if (isPortrait) {
-    return (
-      <div className="fixed inset-0 bg-gradient-to-br from-[#0f0c29] to-[#302b63] flex flex-col items-center justify-center text-center p-8 z-50">
-        <div className="text-8xl mb-6">🔄</div>
-        <div className="font-title text-amber-400 text-3xl mb-3">¡Gira tu dispositivo!</div>
-        <div className="font-body text-white/70 text-lg">
-          Este juego está diseñado para jugarse en horizontal.
-          <br />Por favor, gira tu pantalla. 🧙
-        </div>
-      </div>
-    )
-  }
-
-  return children
-}
 
 function ActiveProfileGuard({ children }) {
   const { activeProfile } = useGame()
@@ -87,9 +54,7 @@ export default function App() {
   return (
     <GameProvider>
       <HashRouter>
-        <OrientationGuard>
-          <AppRoutes />
-        </OrientationGuard>
+        <AppRoutes />
       </HashRouter>
     </GameProvider>
   )

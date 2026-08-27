@@ -41,7 +41,10 @@ function VirtualKeyboard({ onAnswer, ageMode }) {
 
   return (
     <div className="flex flex-col items-center gap-3 w-full">
-      <div className="bg-white/20 rounded-2xl border-2 border-white/30 px-6 py-3 font-title text-white text-3xl min-w-[120px] text-center min-h-[56px]">
+      <div
+        className="bg-gradient-to-b from-white/25 to-white/10 backdrop-blur-md rounded-2xl border-2 border-white/30 px-6 py-3 font-title text-white text-3xl min-w-[120px] text-center min-h-[56px]"
+        style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
+      >
         {input || <span className="opacity-40">?</span>}
       </div>
       {/* Portrait has vertical room to spare, so the keys get fatter targets;
@@ -51,10 +54,11 @@ function VirtualKeyboard({ onAnswer, ageMode }) {
           <motion.button
             key={k}
             onClick={() => handleKey(k)}
-            className={`rounded-xl border-2 font-title text-white transition-colors min-h-[48px] portrait:min-h-[58px] text-xl
+            className={`rounded-xl border-2 backdrop-blur-md font-title text-white shadow-lg shadow-purple-900/40 transition-colors min-h-[48px] portrait:min-h-[58px] text-xl
               ${k === '✓' ? 'bg-emerald-600 border-emerald-400 hover:bg-emerald-500' :
                 k === '⌫' ? 'bg-red-700/60 border-red-400/50 hover:bg-red-600/80' :
-                'bg-white/20 border-white/30 hover:bg-white/40 hover:border-amber-400'}`}
+                'bg-gradient-to-b from-white/30 to-white/15 border-white/30 hover:from-amber-300/30 hover:to-white/20 hover:border-amber-400'}`}
+            style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
           >

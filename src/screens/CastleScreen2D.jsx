@@ -6,6 +6,7 @@ import { getFloorStatus } from '../engine/floorConfig'
 import HeartsBar from '../components/HeartsBar'
 import Character from '../components/PixiCharacter'
 import ViewModeToggle from '../components/ViewModeToggle'
+import ModeToggle from '../components/ModeToggle'
 
 function FloorTile({ level, status, onClick }) {
   const data = getLevelData(level)
@@ -64,6 +65,7 @@ export default function CastleScreen2D({ viewMode }) {
         </div>
         <HeartsBar lives={activeProfile.lives} />
         <div className="flex items-center gap-2">
+          <ModeToggle />
           {viewMode.supports3D && <ViewModeToggle viewMode={viewMode} />}
           <motion.button
             onClick={() => navigate('/profiles')}

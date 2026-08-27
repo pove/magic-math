@@ -305,7 +305,7 @@ export default function RoomScreen() {
           entrance motion must NOT sit inside an opacity:0 ancestor, or it
           plays invisibly and appears to "pop in" together with the question.
         */}
-        <div className="h-full flex flex-col p-2 sm:p-3 short:p-1.5 gap-2 sm:gap-3 short:gap-1.5">
+        <div className="h-full flex flex-col p-2 sm:p-3 short:p-1 gap-2 sm:gap-3 short:gap-1">
           {/* Header - fades in with the question, once the character has landed */}
           <motion.div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap" {...contentFadeProps}>
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -315,7 +315,7 @@ export default function RoomScreen() {
                 title="Volver al castillo"
               >🏰</button>
               <div className="min-w-0">
-                <div className="font-title text-amber-400 text-base sm:text-lg flex items-center gap-2">
+                <div className="font-title text-amber-400 text-base sm:text-lg short:text-sm flex items-center gap-2">
                   Planta {floor}
                   {isPractice && (
                     <span className="text-[10px] sm:text-xs font-body bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded-full whitespace-nowrap">
@@ -323,7 +323,7 @@ export default function RoomScreen() {
                     </span>
                   )}
                 </div>
-                <div className="font-body text-white/70 text-xs sm:text-sm truncate">{roomLabel}</div>
+                <div className="font-body text-white/70 text-xs sm:text-sm short:text-[11px] truncate">{roomLabel}</div>
               </div>
             </div>
             <HeartsBar lives={lives} />

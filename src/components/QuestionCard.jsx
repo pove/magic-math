@@ -4,7 +4,7 @@ export default function QuestionCard({ questionText, ageMode }) {
   const isYoung = ageMode === 'young'
   return (
     <motion.div
-      className="relative bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-xl shadow-purple-900/50 px-4 py-4 sm:px-8 sm:py-6 short:py-2 short:px-4 text-center"
+      className="relative bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-xl shadow-purple-900/50 px-4 py-4 sm:px-8 sm:py-6 short:py-1 short:px-4 text-center"
       initial={{ scale: 0.85, opacity: 0, y: -20 }}
       animate={{ scale: 1, opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 18 }}

@@ -11,7 +11,7 @@ export default function HeartsBar({ lives = 3, maxLives = 3 }) {
           transition={{ duration: 0.4 }}
         >
           <span
-            className="text-2xl sm:text-3xl select-none"
+            className="text-2xl sm:text-3xl short:text-xl select-none"
             style={{ filter: i < lives ? 'none' : 'grayscale(1) opacity(0.3)' }}
           >
             ❤️

@@ -13,6 +13,7 @@ import Ground from '../components/castle3d/Ground'
 import useCameraFly from '../components/castle3d/useCameraFly'
 import { framingForAspect, WIDE_FRAMING } from '../components/castle3d/framing'
 import ViewModeToggle from '../components/ViewModeToggle'
+import ModeToggle from '../components/ModeToggle'
 
 function Scene({ floorStates, currentFloor, onSelectFloor, focusY }) {
   const controlsRef = useRef()
@@ -115,6 +116,7 @@ export default function CastleScreen3D({ viewMode }) {
       <div className="absolute top-0 inset-x-0 p-3 sm:p-4 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <ViewModeToggle viewMode={viewMode} />
+          <ModeToggle />
           <div className="bg-black/50 text-amber-300 font-title px-3 sm:px-4 py-2 rounded-xl border border-white/10 backdrop-blur text-xs sm:text-sm truncate">
             🧙 <span className="hidden sm:inline">{activeProfile.name} · </span>Planta {currentFloor}/12
           </div>

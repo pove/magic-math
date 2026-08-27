@@ -129,7 +129,29 @@ function reducer(state, action) {
     case 'START_NEW_GAME_PLUS': {
       const profiles = state.profiles.map((p) => {
         if (p.id !== action.payload.id) return p
-        return { ...p, currentFloor: 1, currentRoom: 1, lives: 3, score: 0, completedGame: false, currentMode: action.payload.mode }
+        return { ...p, currentFloor: 1, currentRoom: 1, lives: 3, score: 0, completedGame: false, currentMode: action.payload.mode, topModeProgress: null }
+      })
+      saveProfiles(profiles)
+      return { ...state, profiles }
+    }
+    // Salta entre modos ya desbloqueados. Cualquier modo que no sea el último
+    // desbloqueado está, por definición, completo (es la única forma de haber
+    // llegado al siguiente), así que se muestra siempre listo para repasar sin
+    // guardar nada. Solo el modo más avanzado tiene progreso real que
+    // recordar, así que basta un único snapshot para retomarlo tal cual se dejó.
+    case 'SWITCH_MODE': {
+      const profiles = state.profiles.map((p) => {
+        if (p.id !== action.payload.id) return p
+        const targetMode = action.payload.mode
+        if (targetMode === p.currentMode || !p.unlockedModes.includes(targetMode)) return p
+        const topMode = p.unlockedModes[p.unlockedModes.length - 1]
+        const topModeProgress = p.currentMode === topMode
+          ? { currentFloor: p.currentFloor, currentRoom: p.currentRoom, lives: p.lives }
+          : p.topModeProgress
+        const restored = targetMode === topMode
+          ? topModeProgress || { currentFloor: 1, currentRoom: 1, lives: 3 }
+          : { currentFloor: 12, currentRoom: getBossRoom(12), lives: 3 }
+        return { ...p, ...restored, currentMode: targetMode, topModeProgress }
       })
       saveProfiles(profiles)
       return { ...state, profiles }
@@ -158,6 +180,7 @@ export function GameProvider({ children }) {
     equipSkin: (id, slot, skinId) => dispatch({ type: 'EQUIP_SKIN', payload: { id, slot, skinId } }),
     completeGame: (id) => dispatch({ type: 'COMPLETE_GAME', payload: id }),
     startNewGamePlus: (id, mode) => dispatch({ type: 'START_NEW_GAME_PLUS', payload: { id, mode } }),
+    switchMode: (id, mode) => dispatch({ type: 'SWITCH_MODE', payload: { id, mode } }),
   }
 
   return (

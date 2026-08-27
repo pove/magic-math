@@ -37,24 +37,31 @@ function VirtualKeyboard({ onAnswer, ageMode }) {
     if (input.length < 5) setInput((p) => p + k)
   }
 
-  const keys = ['7','8','9','4','5','6','1','2','3','0','⌫','✓']
+  // 4 columns × 3 rows (instead of 3×4) trades a bit of button width for one
+  // fewer row — the row axis is what runs out on a phone in landscape, and
+  // trimming it there keeps the keyboard from being cut off on short screens.
+  const keys = ['7','8','9','⌫','4','5','6','✓','1','2','3','0']
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full">
-      <div className="bg-white/20 rounded-2xl border-2 border-white/30 px-6 py-3 font-title text-white text-3xl min-w-[120px] text-center min-h-[56px]">
+    <div className="flex flex-col items-center gap-2 short:gap-1.5 w-full">
+      <div
+        className="bg-gradient-to-b from-white/25 to-white/10 backdrop-blur-md rounded-2xl border-2 border-white/30 px-6 py-3 short:py-1.5 font-title text-white text-3xl short:text-2xl min-w-[120px] text-center min-h-[56px] short:min-h-[40px]"
+        style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
+      >
         {input || <span className="opacity-40">?</span>}
       </div>
       {/* Portrait has vertical room to spare, so the keys get fatter targets;
           landscape on a phone does not, so they stay compact there. */}
-      <div className="grid grid-cols-3 gap-2 w-full max-w-[240px] portrait:max-w-[280px]">
+      <div className="grid grid-cols-4 gap-2 short:gap-1.5 w-full max-w-[280px] portrait:max-w-[320px]">
         {keys.map((k) => (
           <motion.button
             key={k}
             onClick={() => handleKey(k)}
-            className={`rounded-xl border-2 font-title text-white transition-colors min-h-[48px] portrait:min-h-[58px] text-xl
+            className={`rounded-xl border-2 backdrop-blur-md font-title text-white shadow-lg shadow-purple-900/40 transition-colors min-h-[48px] short:min-h-[36px] portrait:min-h-[58px] text-xl short:text-base
               ${k === '✓' ? 'bg-emerald-600 border-emerald-400 hover:bg-emerald-500' :
                 k === '⌫' ? 'bg-red-700/60 border-red-400/50 hover:bg-red-600/80' :
-                'bg-white/20 border-white/30 hover:bg-white/40 hover:border-amber-400'}`}
+                'bg-gradient-to-b from-white/30 to-white/15 border-white/30 hover:from-amber-300/30 hover:to-white/20 hover:border-amber-400'}`}
+            style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
           >

@@ -47,10 +47,6 @@ export default function RoomScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isCompact, isShort } = useViewport()
-  // The wizard is the emotional anchor of the game, so it stays on screen at
-  // every size — it just shrinks, and moves above the question in portrait.
-  const characterSize = isShort ? 86 : isCompact ? 96 : 110
-  const magoSize = isShort ? 110 : isCompact ? 130 : 155
 
   // Repasar una planta ya superada desde el castillo entra en "modo práctica":
   // se puede jugar esa planta sin tocar el progreso real (vidas, planta actual,
@@ -63,6 +59,16 @@ export default function RoomScreen() {
   const normalRooms = getNormalRoomCount(floor)
   const bossRoom = normalRooms + 1
   const isBoss = room === bossRoom
+  // The wizard is the emotional anchor of the game, so it stays on screen at
+  // every size — it just shrinks, and moves above the question in portrait.
+  // The boss room also shows the exam-giving mago next to it, which needs
+  // more vertical room than a solo character, so both shrink further there
+  // to leave space for the answer panel (worst case: the tall numeric
+  // keyboard) below on short/narrow phones.
+  const characterSize = isBoss
+    ? (isShort ? 62 : isCompact ? 68 : 110)
+    : (isShort ? 86 : isCompact ? 96 : 110)
+  const magoSize = isShort ? 68 : isCompact ? 74 : 155
   // No pedir más preguntas de las que hay combinaciones únicas posibles (p.ej. la
   // planta 1 solo repasa la tabla del 2 hasta ×5 → como mucho 5 preguntas, sin repetir).
   const maxUnique = getMaxUniqueQuestions(activeProfile?.ageMode, floor, room, activeProfile?.currentMode)
@@ -299,7 +305,7 @@ export default function RoomScreen() {
           entrance motion must NOT sit inside an opacity:0 ancestor, or it
           plays invisibly and appears to "pop in" together with the question.
         */}
-        <div className="h-full flex flex-col p-2 sm:p-3 gap-2 sm:gap-3">
+        <div className="h-full flex flex-col p-2 sm:p-3 short:p-1.5 gap-2 sm:gap-3 short:gap-1.5">
           {/* Header - fades in with the question, once the character has landed */}
           <motion.div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap" {...contentFadeProps}>
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -336,7 +342,7 @@ export default function RoomScreen() {
             stacks the character above the question, where there is vertical
             room to spare and no width to give away.
           */}
-          <div className="flex-1 flex flex-col landscape:flex-row gap-2 landscape:gap-4 items-center justify-center min-h-0 overflow-y-auto">
+          <div className="flex-1 flex flex-col landscape:flex-row gap-2 landscape:gap-4 short:landscape:gap-2 items-center justify-center min-h-0 overflow-y-auto">
             {/* Character (+ the wizard, in the boss exam) - animates independently of the question/answers fade */}
             <div className={`flex items-end justify-center shrink-0 gap-1 sm:gap-2 ${isBoss ? 'landscape:w-auto' : 'landscape:w-28'}`}>
               <motion.div

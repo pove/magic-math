@@ -79,10 +79,13 @@ export default function RoomScreen() {
   const is3D = castleViewMode === '3d'
   // A 3D scene (camera margin, floor, perspective falloff) reads much smaller
   // than a flat 2D sprite at the same pixel box — needs a noticeably bigger
-  // box to be legible at all.
+  // box to be legible at all. These sizes were measured against the actual
+  // layout's leftover space at each breakpoint (see RoomScreen's character
+  // column vs. question column split) rather than picked by eye, so the
+  // character fills most of its column instead of floating in empty space.
   const character3dSize = isBoss
-    ? (isShort ? 100 : isCompact ? 130 : 175)
-    : (isShort ? 130 : isCompact ? 165 : 215)
+    ? (isShort ? 140 : isCompact ? 175 : 260)
+    : (isShort ? 195 : isCompact ? 235 : 340)
   // No pedir más preguntas de las que hay combinaciones únicas posibles (p.ej. la
   // planta 1 solo repasa la tabla del 2 hasta ×5 → como mucho 5 preguntas, sin repetir).
   const maxUnique = getMaxUniqueQuestions(activeProfile?.ageMode, floor, room, activeProfile?.currentMode)
@@ -358,7 +361,11 @@ export default function RoomScreen() {
           */}
           <div className="flex-1 flex flex-col landscape:flex-row gap-2 landscape:gap-4 short:landscape:gap-2 items-center justify-center min-h-0 overflow-y-auto overflow-x-hidden">
             {/* Character (+ the wizard, in the boss exam) - animates independently of the question/answers fade */}
-            <div className="flex items-end justify-center shrink-0 gap-1 sm:gap-2 landscape:w-auto">
+            {/* flex-wrap: on the narrowest phones, the 3D character (with a
+                companion) plus the boss exam's wizard can be wider than the
+                screen — wrapping the wizard onto its own line beats clipping
+                either of them off-screen. */}
+            <div className="flex flex-wrap items-end justify-center shrink-0 gap-1 sm:gap-2 w-full landscape:w-auto">
               <motion.div
                 // The 3D character's box is measured by react-three-fiber via
                 // getBoundingClientRect, which (unlike layout width/height)

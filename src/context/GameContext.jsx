@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { getBossRoom } from '../engine/floorConfig'
+import { getCharacter3dById } from '../data/characters3d'
 
 const LS_KEY = 'magic_school_profiles'
 const LS_ACTIVE = 'magic_school_active_id'
@@ -38,6 +39,8 @@ function reducer(state, action) {
         score: 0,
         unlockedSkins: [],
         equippedSkins: { ...DEFAULT_EQUIPPED },
+        character3dId: null,
+        activeCompanion: null,
         completedGame: false,
         newGamePlus: false,
         currentMode: 'normal',
@@ -113,6 +116,26 @@ function reducer(state, action) {
       saveProfiles(profiles)
       return { ...state, profiles }
     }
+    case 'SET_CHARACTER3D': {
+      // Keep the 2D gender (which drives skins/PixiCharacter) in step with
+      // whichever 3D character is active, so switching back to 2D shows the
+      // matching look instead of whatever gender was picked at creation.
+      const character = getCharacter3dById(action.payload.character3dId)
+      const profiles = state.profiles.map((p) =>
+        p.id === action.payload.id
+          ? { ...p, character3dId: action.payload.character3dId, ...(character ? { gender: character.gender } : {}) }
+          : p
+      )
+      saveProfiles(profiles)
+      return { ...state, profiles }
+    }
+    case 'SET_ACTIVE_COMPANION': {
+      const profiles = state.profiles.map((p) =>
+        p.id === action.payload.id ? { ...p, activeCompanion: { type: action.payload.type, id: action.payload.companionId } } : p
+      )
+      saveProfiles(profiles)
+      return { ...state, profiles }
+    }
     case 'COMPLETE_GAME': {
       const profiles = state.profiles.map((p) => {
         if (p.id !== action.payload) return p
@@ -178,6 +201,8 @@ export function GameProvider({ children }) {
     advanceRoom: (id) => dispatch({ type: 'ADVANCE_ROOM', payload: id }),
     unlockSkin: (id, skinId) => dispatch({ type: 'UNLOCK_SKIN', payload: { id, skinId } }),
     equipSkin: (id, slot, skinId) => dispatch({ type: 'EQUIP_SKIN', payload: { id, slot, skinId } }),
+    setCharacter3d: (id, character3dId) => dispatch({ type: 'SET_CHARACTER3D', payload: { id, character3dId } }),
+    setActiveCompanion: (id, type, companionId) => dispatch({ type: 'SET_ACTIVE_COMPANION', payload: { id, type, companionId } }),
     completeGame: (id) => dispatch({ type: 'COMPLETE_GAME', payload: id }),
     startNewGamePlus: (id, mode) => dispatch({ type: 'START_NEW_GAME_PLUS', payload: { id, mode } }),
     switchMode: (id, mode) => dispatch({ type: 'SWITCH_MODE', payload: { id, mode } }),

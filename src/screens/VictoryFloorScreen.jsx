@@ -5,9 +5,12 @@ import confetti from 'canvas-confetti'
 import { useGame } from '../context/GameContext'
 import { getLevelData } from '../data/levels'
 import { SKINS } from '../data/skins'
+import { getPetForFloor } from '../data/pets'
+import { getMonsterForFloor } from '../data/monsters'
 import DirectorMago from '../components/DirectorMago'
 import SceneBackground from '../components/SceneBackground'
 import useViewport from '../hooks/useViewport'
+import useCastleViewMode from '../hooks/useCastleViewMode'
 import { sfx } from '../engine/sfx'
 
 export default function VictoryFloorScreen() {
@@ -16,6 +19,8 @@ export default function VictoryFloorScreen() {
   const { state } = useLocation()
   const fired = useRef(false)
   const { isCompact, isShort } = useViewport()
+  const { mode: castleViewMode } = useCastleViewMode()
+  const is3D = castleViewMode === '3d'
   const directorSize = isShort ? 110 : isCompact ? 130 : 160
 
   const floor = activeProfile?.currentFloor || 1
@@ -23,6 +28,8 @@ export default function VictoryFloorScreen() {
   const newSkinIds = state?.newSkinIds || []
   const outfitItems = SKINS.filter((s) => newSkinIds.includes(s.id))
   const levelData = getLevelData(prevFloor)
+  const newPet = getPetForFloor(prevFloor)
+  const newMonster = getMonsterForFloor(prevFloor)
 
   useEffect(() => {
     if (fired.current) return
@@ -72,8 +79,27 @@ export default function VictoryFloorScreen() {
         </motion.div>
       )}
 
+      {(newPet || newMonster) && (
+        <motion.div
+          className="mb-4 sm:mb-8"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+        >
+          <div className="font-body text-white/60 text-base sm:text-lg mb-2">
+            Nuevos compañeros para tu Guardería
+          </div>
+          <div className="flex gap-2 sm:gap-4 justify-center flex-wrap">
+            {[newPet, newMonster].filter(Boolean).map((item) => (
+              <div key={item.id} className="flex flex-col items-center gap-1 bg-white/10 rounded-2xl p-2 sm:p-4 border border-emerald-400/50">
+                <span className="text-3xl sm:text-4xl">{item.emoji}</span>
+                <span className="font-body text-white text-xs sm:text-sm">{item.name}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       <motion.button
-        onClick={() => { sfx.click(); navigate('/wardrobe') }}
+        onClick={() => { sfx.click(); navigate(is3D ? '/nursery' : '/wardrobe') }}
         className="shrink-0 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-lg sm:text-2xl px-6 sm:px-10 py-3 sm:py-4 rounded-full shadow-lg"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -81,7 +107,7 @@ export default function VictoryFloorScreen() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        VER MI ARMARIO 👗
+        {is3D ? 'VER MI GUARDERÍA 🐾' : 'VER MI ARMARIO 👗'}
       </motion.button>
 
       <motion.button

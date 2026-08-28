@@ -1,22 +1,39 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import useViewport from '../hooks/useViewport'
+import useCastleViewMode from '../hooks/useCastleViewMode'
 import Character from '../components/PixiCharacter'
+import { CHARACTERS_3D } from '../data/characters3d'
 
 export default function CharacterCreateScreen() {
   const { createProfile } = useGame()
   const navigate = useNavigate()
   const { isCompact } = useViewport()
+  const { setPreference: setCastleViewPreference } = useCastleViewMode()
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [gender, setGender] = useState(null)
   const [ageMode, setAgeMode] = useState(null)
+  const [viewMode, setViewMode] = useState(null)
+  const [character3dId, setCharacter3dId] = useState(null)
+
+  const selectViewMode = (value) => {
+    setViewMode(value)
+    setGender(null)
+    setCharacter3dId(null)
+  }
+
+  const selectCharacter3d = (c) => {
+    setCharacter3dId(c.id)
+    setGender(c.gender)
+  }
 
   const handleCreate = () => {
     if (!name.trim() || !gender || !ageMode) return
-    createProfile({ name: name.trim(), gender, ageMode })
+    setCastleViewPreference(viewMode)
+    createProfile({ name: name.trim(), gender, ageMode }, viewMode === '3d' ? { character3dId } : undefined)
     navigate('/castle')
   }
 
@@ -66,26 +83,74 @@ export default function CharacterCreateScreen() {
 
           {step === 2 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <h2 className="font-title text-white text-xl sm:text-2xl text-center mb-4 sm:mb-6">¿Eres niño o niña?</h2>
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <h2 className="font-title text-white text-xl sm:text-2xl text-center mb-4 sm:mb-6">¿Castillo en 2D o en 3D?</h2>
+              <div className="grid grid-cols-2 gap-4 mb-4 sm:mb-6">
                 {[
-                  { value: 'boy', label: 'Niño', emoji: '🧒' },
-                  { value: 'girl', label: 'Niña', emoji: '👧' },
+                  { value: '2d', label: '2D', emoji: '🖼️' },
+                  { value: '3d', label: '3D', emoji: '🧊' },
                 ].map(({ value, label, emoji }) => (
                   <motion.button
                     key={value}
-                    onClick={() => setGender(value)}
-                    className={`flex flex-col items-center gap-3 p-3 sm:p-6 rounded-3xl border-2 transition-all ${gender === value ? 'border-amber-400 bg-amber-400/20' : 'border-white/30 bg-white/10 hover:bg-white/20'}`}
+                    onClick={() => selectViewMode(value)}
+                    className={`flex flex-col items-center gap-2 p-3 sm:p-6 rounded-3xl border-2 transition-all ${viewMode === value ? 'border-amber-400 bg-amber-400/20' : 'border-white/30 bg-white/10 hover:bg-white/20'}`}
                     whileTap={{ scale: 0.97 }}
                   >
-                    <Character gender={value} equippedSkins={{}} animationState="idle" size={isCompact ? 80 : 100} />
+                    <span className="text-3xl sm:text-4xl">{emoji}</span>
                     <span className="font-title text-white text-lg sm:text-xl">{label}</span>
                   </motion.button>
                 ))}
               </div>
+
+              {viewMode === '2d' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 sm:mb-6">
+                  <h3 className="font-title text-white/80 text-base sm:text-lg text-center mb-3">¿Eres niño o niña?</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { value: 'boy', label: 'Niño', emoji: '🧒' },
+                      { value: 'girl', label: 'Niña', emoji: '👧' },
+                    ].map(({ value, label }) => (
+                      <motion.button
+                        key={value}
+                        onClick={() => setGender(value)}
+                        className={`flex flex-col items-center gap-3 p-3 sm:p-6 rounded-3xl border-2 transition-all ${gender === value ? 'border-amber-400 bg-amber-400/20' : 'border-white/30 bg-white/10 hover:bg-white/20'}`}
+                        whileTap={{ scale: 0.97 }}
+                      >
+                        <Character gender={value} equippedSkins={{}} animationState="idle" size={isCompact ? 80 : 100} />
+                        <span className="font-title text-white text-lg sm:text-xl">{label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {viewMode === '3d' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 sm:mb-6">
+                  <h3 className="font-title text-white/80 text-base sm:text-lg text-center mb-3">Elige tu personaje</h3>
+                  <div className="grid grid-cols-4 gap-2 max-h-52 overflow-y-auto pr-1">
+                    {CHARACTERS_3D.map((c) => (
+                      <motion.button
+                        key={c.id}
+                        onClick={() => selectCharacter3d(c)}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-2xl border-2 transition-all ${character3dId === c.id ? 'border-amber-400 bg-amber-400/20' : 'border-white/30 bg-white/10 hover:bg-white/20'}`}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <span className="text-2xl">{c.emoji}</span>
+                        <span className="font-body text-white text-[10px] text-center leading-tight">{c.name}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
               <div className="flex gap-2 sm:gap-3">
                 <motion.button onClick={() => setStep(1)} className="bg-white/20 text-white font-title px-4 sm:px-6 py-3 rounded-full text-sm sm:text-base whitespace-nowrap" whileTap={{ scale: 0.95 }}>← ATRÁS</motion.button>
-                <motion.button onClick={() => setStep(3)} disabled={!gender} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-base sm:text-xl px-2 py-3 rounded-full disabled:opacity-40" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>SIGUIENTE →</motion.button>
+                <motion.button
+                  onClick={() => setStep(3)}
+                  disabled={!gender}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-title text-base sm:text-xl px-2 py-3 rounded-full disabled:opacity-40"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >SIGUIENTE →</motion.button>
               </div>
             </motion.div>
           )}

@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react'
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { GameProvider, useGame } from './context/GameContext'
 
@@ -10,6 +11,9 @@ import WardrobeScreen from './screens/WardrobeScreen'
 import VictoryFloorScreen from './screens/VictoryFloorScreen'
 import VictoryGameScreen from './screens/VictoryGameScreen'
 import DefeatScreen from './screens/DefeatScreen'
+
+// three.js + fiber/drei are only paid for by devices that actually open the Guardería.
+const GuarderiaScreen = lazy(() => import('./screens/GuarderiaScreen'))
 
 function ActiveProfileGuard({ children }) {
   const { activeProfile } = useGame()
@@ -41,6 +45,14 @@ function AppRoutes() {
         <Route path="/room" element={<RoomScreen key={roomKey} />} />
         <Route path="/boss" element={<BossScreen />} />
         <Route path="/wardrobe" element={<WardrobeScreen />} />
+        <Route
+          path="/nursery"
+          element={(
+            <Suspense fallback={<div className="fixed inset-0 bg-[#0b0620]" />}>
+              <GuarderiaScreen />
+            </Suspense>
+          )}
+        />
         <Route path="/victory-floor" element={<VictoryFloorScreen />} />
         <Route path="/victory-game" element={<VictoryGameScreen />} />
         <Route path="/defeat" element={<DefeatScreen />} />

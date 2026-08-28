@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import FloorNode, { FLOOR_HEIGHT, FLOOR_GAP } from './FloorNode'
 import Wizard from './Wizard'
+import PlayerAvatar3D from './PlayerAvatar3D'
 
 export { FLOOR_HEIGHT, FLOOR_GAP }
 
@@ -58,7 +59,7 @@ function Turret({ position, height, accent }) {
  * The castle: main keep with floors, corner turrets climbing the full
  * height, battlemented base wall and a magical spire on top.
  */
-export default function Tower({ levels, floorStates, currentFloor, onSelect }) {
+export default function Tower({ levels, floorStates, currentFloor, onSelect, activeProfile }) {
   const spire = useRef()
 
   useFrame((state) => {
@@ -103,6 +104,11 @@ export default function Tower({ levels, floorStates, currentFloor, onSelect }) {
       {/* The Director Mago waits on the active floor */}
       {activeIndex >= 0 && (
         <Wizard position={[3.5, activeIndex * STEP + FLOOR_HEIGHT / 2 + 1.6, 6.5]} />
+      )}
+
+      {/* The player's chosen character + active companion, opposite the Mago */}
+      {activeIndex >= 0 && activeProfile && (
+        <PlayerAvatar3D profile={activeProfile} position={[-3.5, activeIndex * STEP + FLOOR_HEIGHT / 2 + 1.6, 6.5]} />
       )}
 
       {/* Foundation */}

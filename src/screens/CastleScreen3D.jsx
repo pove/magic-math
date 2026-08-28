@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import { LEVELS } from '../data/levels'
+import { getDefaultCharacter3dId } from '../data/characters3d'
 import { getFloorStatus } from '../engine/floorConfig'
 import Tower, { FLOOR_HEIGHT, FLOOR_GAP } from '../components/castle3d/Tower'
 import SkyDome from '../components/castle3d/SkyDome'
@@ -15,7 +16,7 @@ import { framingForAspect, WIDE_FRAMING } from '../components/castle3d/framing'
 import ViewModeToggle from '../components/ViewModeToggle'
 import ModeToggle from '../components/ModeToggle'
 
-function Scene({ floorStates, currentFloor, onSelectFloor, focusY }) {
+function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile }) {
   const controlsRef = useRef()
   const { camera, size } = useThree()
 
@@ -48,7 +49,7 @@ function Scene({ floorStates, currentFloor, onSelectFloor, focusY }) {
       <SkyDome />
       <Ground />
       <MagicParticles />
-      <Tower levels={LEVELS} floorStates={floorStates} currentFloor={currentFloor} onSelect={onSelectFloor} />
+      <Tower levels={LEVELS} floorStates={floorStates} currentFloor={currentFloor} onSelect={onSelectFloor} activeProfile={activeProfile} />
 
       <OrbitControls
         ref={controlsRef}
@@ -63,9 +64,18 @@ function Scene({ floorStates, currentFloor, onSelectFloor, focusY }) {
 }
 
 export default function CastleScreen3D({ viewMode }) {
-  const { activeProfile } = useGame()
+  const { activeProfile, setCharacter3d } = useGame()
   const navigate = useNavigate()
   const [selected, setSelected] = useState(null)
+
+  // Reaching the 3D castle (whether picked at creation or toggled later)
+  // needs a 3D character on the profile — grant the default one for their
+  // gender instead of leaving it unset.
+  useEffect(() => {
+    if (activeProfile && !activeProfile.character3dId) {
+      setCharacter3d(activeProfile.id, getDefaultCharacter3dId(activeProfile.gender))
+    }
+  }, [activeProfile, setCharacter3d])
 
   if (!activeProfile) return null
 
@@ -108,6 +118,7 @@ export default function CastleScreen3D({ viewMode }) {
           currentFloor={currentFloor}
           onSelectFloor={handleSelect}
           focusY={focusY}
+          activeProfile={activeProfile}
         />
       </Canvas>
 
@@ -130,12 +141,13 @@ export default function CastleScreen3D({ viewMode }) {
           >
             👤
           </motion.button>
+          {/* No skins are visible on a 3D character, so the Armario (2D outfits) has nothing to show here — only the Guardería applies. */}
           <motion.button
-            onClick={() => navigate('/wardrobe')}
+            onClick={() => navigate('/nursery')}
             className="bg-black/50 hover:bg-black/70 text-white font-title px-3 sm:px-4 py-2 rounded-xl border border-white/20 backdrop-blur transition text-sm"
-            title="Armario"
+            title="Guardería"
           >
-            👗
+            🐾
           </motion.button>
         </div>
       </div>

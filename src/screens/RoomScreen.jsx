@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useCallback, useEffect } from 'react'
+﻿import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../context/GameContext'
@@ -7,6 +7,7 @@ import { getNormalRoomCount } from '../engine/floorConfig'
 import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE } from '../engine/roomAnimations'
 import { SKINS } from '../data/skins'
 import useViewport from '../hooks/useViewport'
+import useCastleViewMode from '../hooks/useCastleViewMode'
 import FloorBackground from '../components/FloorBackground'
 import SceneBackground from '../components/SceneBackground'
 import Particles from '../components/Particles'
@@ -20,6 +21,9 @@ import TimerBar from '../components/TimerBar'
 import VisualAid from '../components/VisualAid'
 import ProgressBar from '../components/ProgressBar'
 import RewardModal from '../components/RewardModal'
+
+// three.js + fiber/drei are only paid for by profiles that picked a 3D character.
+const CharacterStage3D = lazy(() => import('../components/character3d/CharacterStage3D'))
 
 const QUESTIONS_NORMAL = 5
 const QUESTIONS_BOSS = 8
@@ -47,6 +51,7 @@ export default function RoomScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isCompact, isShort } = useViewport()
+  const { mode: castleViewMode } = useCastleViewMode()
 
   // Repasar una planta ya superada desde el castillo entra en "modo práctica":
   // se puede jugar esa planta sin tocar el progreso real (vidas, planta actual,
@@ -69,6 +74,15 @@ export default function RoomScreen() {
     ? (isShort ? 62 : isCompact ? 68 : 110)
     : (isShort ? 86 : isCompact ? 96 : 110)
   const magoSize = isShort ? 68 : isCompact ? 74 : 155
+  // Mirrors the castle's own 2D/3D toggle — switching the castle back to 2D
+  // should show the 2D sprite in rooms too, even if a 3D character is saved.
+  const is3D = castleViewMode === '3d'
+  // A 3D scene (camera margin, floor, perspective falloff) reads much smaller
+  // than a flat 2D sprite at the same pixel box — needs a noticeably bigger
+  // box to be legible at all.
+  const character3dSize = isBoss
+    ? (isShort ? 100 : isCompact ? 130 : 175)
+    : (isShort ? 130 : isCompact ? 165 : 215)
   // No pedir más preguntas de las que hay combinaciones únicas posibles (p.ej. la
   // planta 1 solo repasa la tabla del 2 hasta ×5 → como mucho 5 preguntas, sin repetir).
   const maxUnique = getMaxUniqueQuestions(activeProfile?.ageMode, floor, room, activeProfile?.currentMode)
@@ -342,19 +356,26 @@ export default function RoomScreen() {
             stacks the character above the question, where there is vertical
             room to spare and no width to give away.
           */}
-          <div className="flex-1 flex flex-col landscape:flex-row gap-2 landscape:gap-4 short:landscape:gap-2 items-center justify-center min-h-0 overflow-y-auto">
+          <div className="flex-1 flex flex-col landscape:flex-row gap-2 landscape:gap-4 short:landscape:gap-2 items-center justify-center min-h-0 overflow-y-auto overflow-x-hidden">
             {/* Character (+ the wizard, in the boss exam) - animates independently of the question/answers fade */}
-            <div className={`flex items-end justify-center shrink-0 gap-1 sm:gap-2 ${isBoss ? 'landscape:w-auto' : 'landscape:w-28'}`}>
+            <div className="flex items-end justify-center shrink-0 gap-1 sm:gap-2 landscape:w-auto">
               <motion.div
+                // The 3D character's box is measured by react-three-fiber via
+                // getBoundingClientRect, which (unlike layout width/height)
+                // DOES include CSS transforms — animating scale/rotate here
+                // would get baked into the canvas's pixel size at whatever
+                // mid-animation value it happened to be measured at. Drop
+                // those two for the 3D case and keep only transform
+                // properties (opacity/x/y) that don't affect the box size.
                 initial={
                   isNewFloor
-                    ? { opacity: 0, y: 140, scale: 0.55 }
-                    : { opacity: 0, x: -120, scale: 0.7, rotate: -12 }
+                    ? { opacity: 0, y: 140, ...(is3D ? {} : { scale: 0.55 }) }
+                    : { opacity: 0, x: -120, ...(is3D ? {} : { scale: 0.7, rotate: -12 }) }
                 }
                 animate={
                   leaving
-                    ? { opacity: 0, y: -220, x: 170, rotate: 24, scale: 0.5 }
-                    : { opacity: 1, y: 0, x: 0, scale: 1, rotate: 0 }
+                    ? { opacity: 0, y: -220, x: 170, ...(is3D ? {} : { rotate: 24, scale: 0.5 }) }
+                    : { opacity: 1, y: 0, x: 0, ...(is3D ? {} : { scale: 1, rotate: 0 }) }
                 }
                 transition={
                   leaving
@@ -366,12 +387,18 @@ export default function RoomScreen() {
                       }
                 }
               >
-                <Character
-                  gender={activeProfile.gender}
-                  equippedSkins={activeProfile.equippedSkins}
-                  animationState={animState}
-                  size={characterSize}
-                />
+                {is3D ? (
+                  <Suspense fallback={<div style={{ width: character3dSize, height: character3dSize }} />}>
+                    <CharacterStage3D profile={activeProfile} size={character3dSize} />
+                  </Suspense>
+                ) : (
+                  <Character
+                    gender={activeProfile.gender}
+                    equippedSkins={activeProfile.equippedSkins}
+                    animationState={animState}
+                    size={characterSize}
+                  />
+                )}
               </motion.div>
 
               {isBoss && (

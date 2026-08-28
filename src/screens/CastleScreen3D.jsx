@@ -15,6 +15,7 @@ import useCameraFly from '../components/castle3d/useCameraFly'
 import { framingForAspect, WIDE_FRAMING } from '../components/castle3d/framing'
 import ViewModeToggle from '../components/ViewModeToggle'
 import ModeToggle from '../components/ModeToggle'
+import { ErrorBoundary, useCanvasWatchdog } from '../components/CrashOverlay'
 
 function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile }) {
   const controlsRef = useRef()
@@ -67,6 +68,7 @@ export default function CastleScreen3D({ viewMode }) {
   const { activeProfile, setCharacter3d } = useGame()
   const navigate = useNavigate()
   const [selected, setSelected] = useState(null)
+  const watchGl = useCanvasWatchdog()
 
   // Reaching the 3D castle (whether picked at creation or toggled later)
   // needs a 3D character on the profile — grant the default one for their
@@ -112,15 +114,22 @@ export default function CastleScreen3D({ viewMode }) {
 
   return (
     <div className="fixed inset-0 bg-[#0b0620] overflow-hidden select-none">
-      <Canvas camera={{ fov: 55, position: [0, 4, 26] }} dpr={[1, 2]} gl={{ toneMappingExposure: 1.35 }}>
-        <Scene
-          floorStates={floorStates}
-          currentFloor={currentFloor}
-          onSelectFloor={handleSelect}
-          focusY={focusY}
-          activeProfile={activeProfile}
-        />
-      </Canvas>
+      <ErrorBoundary compact>
+        <Canvas
+          camera={{ fov: 55, position: [0, 4, 26] }}
+          onCreated={({ gl }) => watchGl(gl)}
+          dpr={[1, 2]}
+          gl={{ toneMappingExposure: 1.35 }}
+        >
+          <Scene
+            floorStates={floorStates}
+            currentFloor={currentFloor}
+            onSelectFloor={handleSelect}
+            focusY={focusY}
+            activeProfile={activeProfile}
+          />
+        </Canvas>
+      </ErrorBoundary>
 
       {/* HUD — one bar rather than two floating corners, so the left and right
           groups can never overlap on a narrow phone */}

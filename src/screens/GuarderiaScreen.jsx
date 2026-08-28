@@ -8,6 +8,7 @@ import { CHARACTERS_3D, CC_BY_CREDIT, getCharacter3dById, getDefaultCharacter3dI
 import { PETS, getUnlockedPets } from '../data/pets'
 import { MONSTERS, getUnlockedMonsters } from '../data/monsters'
 import GltfCharacter from '../components/character3d/GltfCharacter'
+import { ErrorBoundary, useCanvasWatchdog } from '../components/CrashOverlay'
 
 const TABS = [
   { key: 'character', label: 'Personaje', emoji: '🧑' },
@@ -20,6 +21,7 @@ export default function GuarderiaScreen() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('character')
   const [showCredits, setShowCredits] = useState(false)
+  const watchGl = useCanvasWatchdog()
 
   if (!activeProfile) return null
 
@@ -57,19 +59,25 @@ export default function GuarderiaScreen() {
 
       <div className="flex-1 flex flex-col landscape:flex-row overflow-hidden">
         <div className="flex flex-col items-center justify-center gap-2 w-full landscape:w-[26rem] p-2 sm:p-4 border-b landscape:border-b-0 landscape:border-r border-white/10 shrink-0 h-80 landscape:h-auto">
-          <Canvas camera={{ fov: 40, position: [0.48, 1.28, 4.5] }} dpr={[1, 2]}>
-            <ambientLight intensity={0.9} />
-            <directionalLight position={[3, 5, 4]} intensity={1.6} color="#e9d5ff" />
-            <directionalLight position={[-3, 2, -3]} intensity={0.6} color="#93c5fd" />
-            <hemisphereLight args={['#8b7fd4', '#2a2350', 1.1]} />
-            <Suspense fallback={null}>
-              <GltfCharacter key={character.file} src={character.file} animationName={character.animation} targetHeight={character.height} position={[-0.3, 0, 0]} />
-              {companion && (
-                <GltfCharacter key={companion.file} src={companion.file} animationName={companion.animation} targetHeight={companion.height} position={[0.85, 0, 0.4]} rotationY={-0.6} />
-              )}
-            </Suspense>
-            <OrbitControls target={[0.2, 0.8, 0]} enablePan={false} minDistance={1.5} maxDistance={8} />
-          </Canvas>
+          <ErrorBoundary compact>
+            <Canvas
+              camera={{ fov: 40, position: [0.48, 1.28, 4.5] }}
+              onCreated={({ gl }) => watchGl(gl)}
+              dpr={[1, 2]}
+            >
+              <ambientLight intensity={0.9} />
+              <directionalLight position={[3, 5, 4]} intensity={1.6} color="#e9d5ff" />
+              <directionalLight position={[-3, 2, -3]} intensity={0.6} color="#93c5fd" />
+              <hemisphereLight args={['#8b7fd4', '#2a2350', 1.1]} />
+              <Suspense fallback={null}>
+                <GltfCharacter key={character.file} src={character.file} animationName={character.animation} targetHeight={character.height} position={[-0.3, 0, 0]} />
+                {companion && (
+                  <GltfCharacter key={companion.file} src={companion.file} animationName={companion.animation} targetHeight={companion.height} position={[0.85, 0, 0.4]} rotationY={-0.6} />
+                )}
+              </Suspense>
+              <OrbitControls target={[0.2, 0.8, 0]} enablePan={false} minDistance={1.5} maxDistance={8} />
+            </Canvas>
+          </ErrorBoundary>
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden">

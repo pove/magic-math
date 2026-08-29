@@ -1,6 +1,9 @@
 import { assetPath } from '../utils/assetPath'
 
 const IDLE = 'CharacterArmature|Idle'
+// All 8 models share this rig family's clip name for walking, used for the
+// room-entrance walk-in flourish (see CharacterStage3D's `walking` prop).
+export const WALK_ANIMATION = 'CharacterArmature|Walk'
 
 // All 8 models come from the same Quaternius rig family and measure a very
 // consistent ~1.8-1.9 native units tall — so a single target height (see

@@ -24,6 +24,8 @@ import RewardModal from '../components/RewardModal'
 
 // three.js + fiber/drei are only paid for by profiles that picked a 3D character.
 const CharacterStage3D = lazy(() => import('../components/character3d/CharacterStage3D'))
+// Experimental 3D take on the room background — for now only floor 1 has one.
+const RoomScene3D = lazy(() => import('../components/RoomScene3D'))
 
 const QUESTIONS_NORMAL = 5
 const QUESTIONS_BOSS = 8
@@ -77,6 +79,10 @@ export default function RoomScreen() {
   // Mirrors the castle's own 2D/3D toggle — switching the castle back to 2D
   // should show the 2D sprite in rooms too, even if a 3D character is saved.
   const is3D = castleViewMode === '3d'
+  // First experiment at a 3D room background — only floor 1 has one so far,
+  // everything else keeps the 2D procedural scene.
+  const use3DRoom = is3D && floor === 1
+  const SceneComponent = use3DRoom ? RoomScene3D : SceneBackground
   // A 3D scene (camera margin, floor, perspective falloff) reads much smaller
   // than a flat 2D sprite at the same pixel box — needs a noticeably bigger
   // box to be legible at all.
@@ -288,7 +294,8 @@ export default function RoomScreen() {
 
   return (
     <div className="h-dvh w-full overflow-hidden">
-      <SceneBackground floor={floor} room={room} introLevel={isNewFloor ? 'floor' : 'room'}>
+      <Suspense fallback={<div className="fixed inset-0 bg-[#1a0533]" />}>
+      <SceneComponent floor={floor} room={room} introLevel={isNewFloor ? 'floor' : 'room'}>
         {/* "Entrando en..." title card, then it fades out before the question shows */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6"
@@ -362,15 +369,18 @@ export default function RoomScreen() {
               <motion.div
                 // The 3D character's box is measured by react-three-fiber via
                 // getBoundingClientRect, which (unlike layout width/height)
-                // DOES include CSS transforms — animating scale/rotate here
-                // would get baked into the canvas's pixel size at whatever
-                // mid-animation value it happened to be measured at. Drop
-                // those two for the 3D case and keep only transform
-                // properties (opacity/x/y) that don't affect the box size.
+                // DOES include CSS transforms — animating scale/rotate/x/y
+                // here would get baked into the canvas's pixel size at
+                // whatever mid-animation value it happened to be measured
+                // at. So for is3D, only fade the box in (no transform at
+                // all) — the actual "walks in, growing" motion happens for
+                // real inside the character's own 3D viewport instead (see
+                // PlayerAvatar3D's walkIn tween), driven by the same
+                // charDelayMs/charDurationMs so both stay in sync.
                 initial={
                   isNewFloor
-                    ? { opacity: 0, y: 140, ...(is3D ? {} : { scale: 0.55 }) }
-                    : { opacity: 0, x: -120, ...(is3D ? {} : { scale: 0.7, rotate: -12 }) }
+                    ? { opacity: 0, ...(is3D ? {} : { y: 140, scale: 0.55 }) }
+                    : { opacity: 0, ...(is3D ? {} : { x: -120, scale: 0.7, rotate: -12 }) }
                 }
                 animate={
                   leaving
@@ -380,16 +390,28 @@ export default function RoomScreen() {
                 transition={
                   leaving
                     ? { duration: ROOM_LEAVE.charDurationMs / 1000, ease: 'easeIn' }
-                    : {
-                        duration: introCfg.charDurationMs / 1000,
-                        delay: charDelayMs / 1000,
-                        ease: [0.34, 1.56, 0.64, 1],
-                      }
+                    : is3D
+                      // The box itself just needs to appear — the walk/grow
+                      // motion happens inside it (PlayerAvatar3D's walkIn
+                      // tween), so this fade stays short regardless of how
+                      // long that takes.
+                      ? { duration: 0.35, delay: charDelayMs / 1000, ease: 'easeOut' }
+                      : {
+                          duration: introCfg.charDurationMs / 1000,
+                          delay: charDelayMs / 1000,
+                          ease: [0.34, 1.56, 0.64, 1],
+                        }
                 }
               >
                 {is3D ? (
                   <Suspense fallback={<div style={{ width: character3dSize, height: character3dSize }} />}>
-                    <CharacterStage3D profile={activeProfile} size={character3dSize} />
+                    <CharacterStage3D
+                      profile={activeProfile}
+                      size={character3dSize}
+                      walking={entering}
+                      walkInDelayMs={charDelayMs}
+                      walkInDurationMs={introCfg.charDurationMs}
+                    />
                   </Suspense>
                 ) : (
                   <Character
@@ -455,7 +477,8 @@ export default function RoomScreen() {
             </motion.div>
           </div>
         </div>
-      </SceneBackground>
+      </SceneComponent>
+      </Suspense>
 
       <Particles key={particles?.key || 'none'} trigger={particles} type={particles?.type} />
 

@@ -169,8 +169,16 @@ export default function RoomScreen() {
           const accessory = SKINS.find(
             (s) => s.unlockedAtFloor === floor && s.unlockedAtRoom === room && room !== bossRoom
           )
-          if (!isPractice && accessory && !activeProfile.unlockedSkins.includes(accessory.id)) {
-            unlockSkin(activeProfile.id, accessory.id)
+          const isNewAccessory = !isPractice && accessory && !activeProfile.unlockedSkins.includes(accessory.id)
+          if (isNewAccessory) unlockSkin(activeProfile.id, accessory.id)
+          // The mid-floor accessory reward (hair/hat/glasses/...) is only
+          // visible on the 2D sprite — a 3D character shows no skins at all,
+          // so popping up "¡Nuevo complemento!" there would announce
+          // something the player can't see. Still unlock it silently (so it's
+          // waiting in the Armario if they switch back to 2D later); the 3D
+          // equivalent reward — a new pet/monster — is already announced on
+          // VictoryFloorScreen once the whole floor (and its boss) is done.
+          if (isNewAccessory && !is3D) {
             setRewardSkinId(accessory.id)
           } else {
             finishRoom()
@@ -208,7 +216,7 @@ export default function RoomScreen() {
         }
       }, 700)
     }
-  }, [disabled, question, answered, totalQuestions, activeProfile, floor, room, bossRoom, isPractice, practiceLives, loseLife, unlockSkin, nextQuestion, navigate, updateProfile])
+  }, [disabled, question, answered, totalQuestions, activeProfile, floor, room, bossRoom, isPractice, practiceLives, loseLife, unlockSkin, nextQuestion, navigate, updateProfile, is3D])
 
   // Plays the "character flies off happily" beat, then runs the given action
   // once it's off-screen — so the finished-room state (e.g. a 100% progress

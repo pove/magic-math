@@ -1,11 +1,12 @@
 import { Canvas } from '@react-three/fiber'
 import PlayerAvatar3D from '../castle3d/PlayerAvatar3D'
 import { ErrorBoundary, useCanvasWatchdog } from '../CrashOverlay'
+import { WALK_ANIMATION } from '../../data/characters3d'
 
 // A character standing with a companion beside it is a wide composition —
 // giving it a wider box (instead of forcing it into a square) means the pair
 // renders at full, consistent size instead of both shrinking to fit.
-export default function CharacterStage3D({ profile, size = 110 }) {
+export default function CharacterStage3D({ profile, size = 110, walking = false, walkInDelayMs = 0, walkInDurationMs = 900 }) {
   const hasCompanion = Boolean(profile.activeCompanion)
   const width = hasCompanion ? Math.round(size * 1.5) : size
   const watchGl = useCanvasWatchdog()
@@ -31,7 +32,14 @@ export default function CharacterStage3D({ profile, size = 110 }) {
           <ambientLight intensity={1} />
           <directionalLight position={[3, 5, 4]} intensity={1.6} color="#e9d5ff" />
           <hemisphereLight args={['#8b7fd4', '#2a2350', 1.2]} />
-          <PlayerAvatar3D profile={profile} position={[hasCompanion ? -0.3 : 0, 0, 0]} />
+          <PlayerAvatar3D
+            profile={profile}
+            position={[hasCompanion ? -0.3 : 0, 0, 0]}
+            animationOverride={walking ? WALK_ANIMATION : undefined}
+            walkIn={walking}
+            walkInDelayMs={walkInDelayMs}
+            walkInDurationMs={walkInDurationMs}
+          />
         </Canvas>
       </ErrorBoundary>
     </div>

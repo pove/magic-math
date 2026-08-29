@@ -13,6 +13,7 @@ import CryptOfSagesRoom from './roomscene3d/CryptOfSagesRoom'
 import ObservatoryRoom from './roomscene3d/ObservatoryRoom'
 import CouncilHallRoom from './roomscene3d/CouncilHallRoom'
 import CloudBridgeRoom from './roomscene3d/CloudBridgeRoom'
+import WizardTowerRoom from './roomscene3d/WizardTowerRoom'
 import { AmbientOrbs, MagicDust } from './roomscene3d/kit'
 import { FLOOR_INTRO, ROOM_INTRO } from '../engine/roomAnimations'
 import { getRoomVariant } from '../engine/roomVariants'
@@ -32,6 +33,7 @@ const SCENES_3D = {
   9: ObservatoryRoom,
   10: CouncilHallRoom,
   11: CloudBridgeRoom,
+  12: WizardTowerRoom,
 }
 
 // Where the camera settles once the entrance move finishes — every shot

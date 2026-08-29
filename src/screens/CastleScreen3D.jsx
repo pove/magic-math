@@ -65,7 +65,7 @@ function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile
 }
 
 export default function CastleScreen3D({ viewMode }) {
-  const { activeProfile, setCharacter3d } = useGame()
+  const { activeProfile, setCharacter3d, updateProfile } = useGame()
   const navigate = useNavigate()
   const [selected, setSelected] = useState(null)
   const watchGl = useCanvasWatchdog()
@@ -83,9 +83,20 @@ export default function CastleScreen3D({ viewMode }) {
 
   const currentFloor = activeProfile.currentFloor
 
-  // Start focused on the current floor so the intro flies there
+  // Which floor the camera/UI is focused on is separate from which floor is
+  // actually unlocked (currentFloor): a player revisiting an earlier floor
+  // to practice shouldn't have the castle snap back to their current floor
+  // the moment they leave and come back. Remembered per-profile so it
+  // survives the round trip through the room/boss screens (which don't all
+  // thread state back here) and even a page reload.
+  const storedFocusFloor = activeProfile.castleSelectedFloor
+  const initialFocusFloor =
+    storedFocusFloor && LEVELS.some((l) => l.floor === storedFocusFloor) ? storedFocusFloor : currentFloor
+  const [focusFloor, setFocusFloor] = useState(initialFocusFloor)
+
+  // Start focused on the remembered floor so the intro flies there
   const initialY = useMemo(() => {
-    const idx = Math.max(0, LEVELS.findIndex((l) => l.floor === currentFloor))
+    const idx = Math.max(0, LEVELS.findIndex((l) => l.floor === initialFocusFloor))
     return idx * (FLOOR_HEIGHT + FLOOR_GAP)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [focusY, setFocusY] = useState(initialY)
@@ -100,6 +111,8 @@ export default function CastleScreen3D({ viewMode }) {
 
   const handleSelect = (floor) => {
     setSelected(floor)
+    setFocusFloor(floor)
+    updateProfile(activeProfile.id, { castleSelectedFloor: floor })
     const idx = LEVELS.findIndex((l) => l.floor === floor)
     if (idx >= 0) setFocusY(idx * (FLOOR_HEIGHT + FLOOR_GAP))
   }
@@ -165,24 +178,26 @@ export default function CastleScreen3D({ viewMode }) {
         Arrastra para girar · Rueda/dedo para zoom · Toca una planta
       </div>
 
-      {/* Up / down floor navigation */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3">
+      {/* Up / down floor navigation — z-20 so the floor info panel below
+          (which can grow tall on short screens) never paints over and
+          hides these buttons. */}
+      <div className="absolute z-20 right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => handleSelect(Math.min(12, (selected ?? currentFloor) + 1))}
-          disabled={(selected ?? currentFloor) >= 12}
+          onClick={() => handleSelect(Math.min(12, focusFloor + 1))}
+          disabled={focusFloor >= 12}
           className="w-14 h-14 rounded-full bg-gradient-to-b from-purple-500 to-indigo-600 text-white text-2xl font-title shadow-lg shadow-purple-900/50 border border-white/20 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur"
           title="Subir de planta"
         >
           ▲
         </motion.button>
         <div className="text-center font-title text-amber-300 text-sm bg-black/40 rounded-lg py-1 px-2 backdrop-blur">
-          {(selected ?? currentFloor)}
+          {focusFloor}
         </div>
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => handleSelect(Math.max(1, (selected ?? currentFloor) - 1))}
-          disabled={(selected ?? currentFloor) <= 1}
+          onClick={() => handleSelect(Math.max(1, focusFloor - 1))}
+          disabled={focusFloor <= 1}
           className="w-14 h-14 rounded-full bg-gradient-to-b from-purple-500 to-indigo-600 text-white text-2xl font-title shadow-lg shadow-purple-900/50 border border-white/20 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur"
           title="Bajar de planta"
         >
@@ -199,7 +214,7 @@ export default function CastleScreen3D({ viewMode }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ type: 'spring', damping: 22, stiffness: 260 }}
-            className="absolute inset-x-0 bottom-8 flex justify-center pointer-events-none"
+            className="absolute z-10 inset-x-0 bottom-8 flex justify-center pointer-events-none"
           >
             <div className="pointer-events-auto bg-gradient-to-b from-[#2d1b69]/95 to-[#0f0c29]/95 border border-amber-500/40 rounded-2xl p-6 shadow-2xl shadow-purple-900/50 backdrop-blur max-w-md w-full mx-4 text-center">
               <div className="text-5xl mb-2 pointer-events-none">{LEVELS[selected - 1].decorations[0]}</div>

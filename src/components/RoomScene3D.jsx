@@ -7,6 +7,7 @@ import LibraryRoom from './roomscene3d/LibraryRoom'
 import PotionLabRoom from './roomscene3d/PotionLabRoom'
 import EnchantedGardenRoom from './roomscene3d/EnchantedGardenRoom'
 import PortraitGalleryRoom from './roomscene3d/PortraitGalleryRoom'
+import SpellClassroomRoom from './roomscene3d/SpellClassroomRoom'
 import { AmbientOrbs, MagicDust } from './roomscene3d/kit'
 import { FLOOR_INTRO, ROOM_INTRO } from '../engine/roomAnimations'
 import { getRoomVariant } from '../engine/roomVariants'
@@ -20,6 +21,7 @@ const SCENES_3D = {
   3: PotionLabRoom,
   4: EnchantedGardenRoom,
   5: PortraitGalleryRoom,
+  6: SpellClassroomRoom,
 }
 
 // Where the camera settles once the entrance move finishes — every shot

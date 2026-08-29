@@ -8,10 +8,14 @@ import SceneBackground from '../components/SceneBackground'
 import Character from '../components/PixiCharacter'
 import useViewport from '../hooks/useViewport'
 import useCastleViewMode from '../hooks/useCastleViewMode'
+import { hasRoomScene3D } from '../engine/roomScenes3d'
 import { sfx } from '../engine/sfx'
 
 // three.js + fiber/drei are only paid for by profiles that picked a 3D character.
 const CharacterStage3D = lazy(() => import('../components/character3d/CharacterStage3D'))
+// Same 3D room background used in RoomScreen, for visual consistency right
+// before walking into the boss battle in that same room.
+const RoomScene3D = lazy(() => import('../components/RoomScene3D'))
 
 const usedJokesSession = new Set()
 
@@ -46,12 +50,17 @@ export default function BossScreen() {
     ? { practiceFloor: location.state.practiceFloor, practiceRoom: location.state.practiceRoom, practiceLives: location.state.practiceLives }
     : undefined
   const displayFloor = practiceState?.practiceFloor || activeProfile?.currentFloor
+  // Falls back to the 2D procedural scene for any floor that doesn't have a
+  // 3D room yet (see src/engine/roomScenes3d.js for the current rollout).
+  const use3DRoom = is3D && hasRoomScene3D(displayFloor)
+  const SceneComponent = use3DRoom ? RoomScene3D : SceneBackground
 
   if (!activeProfile) return null
 
   return (
     <div className="h-dvh w-full overflow-hidden">
-      <SceneBackground floor={displayFloor} introLevel="none">
+      <Suspense fallback={<div className="fixed inset-0 bg-[#1a0533]" />}>
+      <SceneComponent floor={displayFloor} introLevel="none">
         <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto overflow-x-hidden">
           <button
             onClick={() => { sfx.click(); navigate('/castle') }}
@@ -119,7 +128,8 @@ export default function BossScreen() {
             ¡JA, JA! ¡EMPEZAR EXAMEN! 📝
           </motion.button>
         </div>
-      </SceneBackground>
+      </SceneComponent>
+      </Suspense>
     </div>
   )
 }

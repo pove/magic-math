@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { motion } from 'framer-motion'
 import { ErrorBoundary, useCanvasWatchdog } from './CrashOverlay'
 import CastleEntranceRoom from './roomscene3d/CastleEntranceRoom'
+import LibraryRoom from './roomscene3d/LibraryRoom'
 import { AmbientOrbs, MagicDust } from './roomscene3d/kit'
 import { FLOOR_INTRO, ROOM_INTRO } from '../engine/roomAnimations'
 import { getRoomVariant } from '../engine/roomVariants'
@@ -12,6 +13,7 @@ import { getRoomVariant } from '../engine/roomVariants'
 // currently have one.
 const SCENES_3D = {
   1: CastleEntranceRoom,
+  2: LibraryRoom,
 }
 
 // Where the camera settles once the entrance move finishes — every shot

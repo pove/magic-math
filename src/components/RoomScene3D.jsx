@@ -10,6 +10,7 @@ import PortraitGalleryRoom from './roomscene3d/PortraitGalleryRoom'
 import SpellClassroomRoom from './roomscene3d/SpellClassroomRoom'
 import ClockTowerRoom from './roomscene3d/ClockTowerRoom'
 import CryptOfSagesRoom from './roomscene3d/CryptOfSagesRoom'
+import ObservatoryRoom from './roomscene3d/ObservatoryRoom'
 import { AmbientOrbs, MagicDust } from './roomscene3d/kit'
 import { FLOOR_INTRO, ROOM_INTRO } from '../engine/roomAnimations'
 import { getRoomVariant } from '../engine/roomVariants'
@@ -26,6 +27,7 @@ const SCENES_3D = {
   6: SpellClassroomRoom,
   7: ClockTowerRoom,
   8: CryptOfSagesRoom,
+  9: ObservatoryRoom,
 }
 
 // Where the camera settles once the entrance move finishes — every shot

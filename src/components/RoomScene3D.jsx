@@ -3,12 +3,13 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { motion } from 'framer-motion'
 import { ErrorBoundary, useCanvasWatchdog } from './CrashOverlay'
 import CastleEntranceRoom from './roomscene3d/CastleEntranceRoom'
+import { AmbientOrbs, MagicDust } from './roomscene3d/kit'
 import { FLOOR_INTRO, ROOM_INTRO } from '../engine/roomAnimations'
 import { getRoomVariant } from '../engine/roomVariants'
 
-// One 3D room per floor theme, mirroring SceneBackground's SCENES map. Only
-// floor 1 has a 3D take so far — this is a first experiment to see whether a
-// 3D room can read as "the same place" as its 2D counterpart.
+// One 3D room per floor theme, mirroring SceneBackground's SCENES map.
+// Extended floor by floor — see src/engine/roomScenes3d.js for which floors
+// currently have one.
 const SCENES_3D = {
   1: CastleEntranceRoom,
 }
@@ -66,10 +67,6 @@ function CameraRig({ durationMs, startPosition, children }) {
   return children
 }
 
-export function hasRoomScene3D(floor) {
-  return Boolean(SCENES_3D[floor])
-}
-
 export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', children }) {
   const watchGl = useCanvasWatchdog()
   const Scene = SCENES_3D[floor] || CastleEntranceRoom
@@ -103,6 +100,8 @@ export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', 
             <hemisphereLight args={['#8b7fd4', '#1a0533', 1.1]} />
             <CameraRig durationMs={durationMs} startPosition={shot.start}>
               <Scene accent={variant.accent} />
+              <AmbientOrbs accent={variant.accent} seed={floor * 97 + room * 13} />
+              <MagicDust color={variant.accent} seed={floor * 53 + room * 7} />
             </CameraRig>
           </Canvas>
         </ErrorBoundary>

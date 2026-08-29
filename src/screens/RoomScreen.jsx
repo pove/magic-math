@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import { generateQuestion, getMaxUniqueQuestions } from '../engine/mathEngine'
 import { getNormalRoomCount } from '../engine/floorConfig'
+import { hasRoomScene3D } from '../engine/roomScenes3d'
 import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE } from '../engine/roomAnimations'
 import { SKINS } from '../data/skins'
 import useViewport from '../hooks/useViewport'
@@ -79,9 +80,9 @@ export default function RoomScreen() {
   // Mirrors the castle's own 2D/3D toggle — switching the castle back to 2D
   // should show the 2D sprite in rooms too, even if a 3D character is saved.
   const is3D = castleViewMode === '3d'
-  // First experiment at a 3D room background — only floor 1 has one so far,
-  // everything else keeps the 2D procedural scene.
-  const use3DRoom = is3D && floor === 1
+  // Falls back to the 2D procedural scene for any floor that doesn't have a
+  // 3D room yet (see src/engine/roomScenes3d.js for the current rollout).
+  const use3DRoom = is3D && hasRoomScene3D(floor)
   const SceneComponent = use3DRoom ? RoomScene3D : SceneBackground
   // A 3D scene (camera margin, floor, perspective falloff) reads much smaller
   // than a flat 2D sprite at the same pixel box — needs a noticeably bigger

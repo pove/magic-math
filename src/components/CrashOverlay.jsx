@@ -10,7 +10,7 @@ function formatError(error) {
   }
 }
 
-function CrashCard({ title, detail }) {
+function CrashCard({ title, detail, onClose }) {
   return (
     <div className="fixed inset-0 z-[9999] bg-[#0b0620]/97 text-white flex items-center justify-center p-4 overflow-auto">
       <div className="max-w-lg w-full bg-red-950/70 border border-red-500/50 rounded-2xl p-5">
@@ -18,12 +18,22 @@ function CrashCard({ title, detail }) {
         <pre className="whitespace-pre-wrap break-words text-red-100/90 text-[11px] sm:text-xs font-mono max-h-[45vh] overflow-auto">
           {detail}
         </pre>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 rounded-xl bg-red-500/80 hover:bg-red-500 font-title text-white text-sm"
-        >
-          Recargar
-        </button>
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-xl bg-red-500/80 hover:bg-red-500 font-title text-white text-sm"
+          >
+            Recargar
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 font-title text-white text-sm"
+            >
+              Cerrar
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -97,13 +107,26 @@ export class ErrorBoundary extends Component {
       if (this.props.compact) {
         return (
           this.props.fallback ?? (
-            <div className="w-full h-full min-h-[4rem] flex items-center justify-center bg-red-950/40 border border-red-500/30 rounded-xl text-red-100 text-[10px] font-mono p-2 text-center overflow-auto">
+            <div className="relative w-full h-full min-h-[4rem] flex items-center justify-center bg-red-950/40 border border-red-500/30 rounded-xl text-red-100 text-[10px] font-mono p-2 text-center overflow-auto">
+              <button
+                onClick={() => this.setState({ error: null })}
+                aria-label="Cerrar"
+                className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white text-xs leading-none"
+              >
+                ×
+              </button>
               {formatError(this.state.error).slice(0, 300)}
             </div>
           )
         )
       }
-      return <CrashCard title="Algo se rompió" detail={formatError(this.state.error)} />
+      return (
+        <CrashCard
+          title="Algo se rompió"
+          detail={formatError(this.state.error)}
+          onClose={() => this.setState({ error: null })}
+        />
+      )
     }
     return this.props.children
   }
@@ -138,5 +161,5 @@ export function GlobalCrashOverlay() {
   }, [])
 
   if (!crash) return null
-  return <CrashCard title="Error no capturado" detail={crash} />
+  return <CrashCard title="Error no capturado" detail={crash} onClose={() => setCrash(null)} />
 }

@@ -5,6 +5,7 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { FLOOR_INTRO, ROOM_INTRO } from '../engine/roomAnimations'
+import { getRoomVariant } from '../engine/roomVariants'
 import useViewport from '../hooks/useViewport'
 
 // Deterministic pseudo-random so scenes don't reshuffle every render
@@ -615,20 +616,9 @@ const SCENES = {
 /* ---------- Per-room variation ---------- */
 // Every scene keeps its theme, but each room within a floor gets its own
 // color mood (hue/saturation tint) and a matching set of ambient glow orbs,
-// so rooms feel distinct without redrawing all 12 scenes by hand.
-const ROOM_VARIANTS = [
-  { hue: 0, sat: 1, accent: '#fbbf24' },
-  { hue: 24, sat: 1.08, accent: '#f472b6' },
-  { hue: -20, sat: 0.92, accent: '#60a5fa' },
-  { hue: 42, sat: 1.12, accent: '#34d399' },
-  { hue: -34, sat: 0.95, accent: '#a78bfa' },
-  { hue: 14, sat: 1.05, accent: '#fb923c' },
-]
-
-function getRoomVariant(room) {
-  const idx = ((room - 1) % ROOM_VARIANTS.length + ROOM_VARIANTS.length) % ROOM_VARIANTS.length
-  return ROOM_VARIANTS[idx]
-}
+// so rooms feel distinct without redrawing all 12 scenes by hand. The
+// variants themselves live in engine/roomVariants.js, shared with the 3D
+// room background.
 
 function AmbientOrbs({ accent, seed, portrait }) {
   const orbs = useMemo(() => {

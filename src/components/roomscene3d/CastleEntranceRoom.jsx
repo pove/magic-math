@@ -113,6 +113,43 @@ function Window({ position }) {
   )
 }
 
+// Small glowing orbs drifting in the courtyard, tinted with the room's
+// accent color — the 3D equivalent of the 2D scene's AmbientOrbs, so each
+// room in the floor gets its own color mood without redrawing the geometry.
+function AmbientOrbs({ accent }) {
+  const orbs = useMemo(
+    () =>
+      Array.from({ length: 6 }, (_, i) => ({
+        x: -6 + i * 2.3 + (i % 2 ? 0.6 : -0.4),
+        baseY: 1.2 + (i % 3) * 0.9,
+        z: -9 + (i % 4) * 2.4,
+        speed: 0.4 + (i % 3) * 0.15,
+        phase: i * 1.1,
+      })),
+    []
+  )
+  const refs = useRef([])
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+    orbs.forEach((o, i) => {
+      const mesh = refs.current[i]
+      if (!mesh) return
+      mesh.position.y = o.baseY + Math.sin(t * o.speed + o.phase) * 0.6
+      mesh.material.opacity = 0.35 + Math.sin(t * o.speed * 1.3 + o.phase) * 0.2
+    })
+  })
+  return (
+    <group>
+      {orbs.map((o, i) => (
+        <mesh key={i} ref={(el) => (refs.current[i] = el)} position={[o.x, o.baseY, o.z]}>
+          <sphereGeometry args={[0.16, 12, 12]} />
+          <meshBasicMaterial color={accent} transparent opacity={0.5} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function Gate() {
   const shape = useMemo(() => {
     const s = new THREE.Shape()
@@ -158,7 +195,7 @@ function Gate() {
   )
 }
 
-export default function CastleEntranceRoom() {
+export default function CastleEntranceRoom({ accent = '#fbbf24' }) {
   const moonGlow = useRef()
   useFrame((state) => {
     if (moonGlow.current) {
@@ -216,6 +253,9 @@ export default function CastleEntranceRoom() {
 
       <Window position={[-6.5, 3.6, -12.5]} />
       <Window position={[6.5, 3.6, -12.5]} />
+
+      <AmbientOrbs accent={accent} />
+      <pointLight position={[0, 5, 2]} color={accent} intensity={0.6} distance={20} />
 
       {/* stone floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 4]}>

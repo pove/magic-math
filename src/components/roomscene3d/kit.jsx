@@ -301,8 +301,8 @@ export function Banner({ position, color = '#7c3aed', height = 2.4, width = 1.2 
   })
   return (
     <group position={position}>
-      <mesh position={[0, height / 2 + 0.15, 0]}>
-        <cylinderGeometry args={[0.04, 0.04, width + 0.3, 8]} rotation={[0, 0, Math.PI / 2]} />
+      <mesh position={[0, height / 2 + 0.15, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.04, 0.04, width + 0.3, 8]} />
         <meshStandardMaterial color="#52525b" />
       </mesh>
       <group ref={ref} position={[0, height / 2, 0]}>

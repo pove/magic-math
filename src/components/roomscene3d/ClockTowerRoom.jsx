@@ -19,12 +19,12 @@ function ClockFace() {
   })
   return (
     <group position={[0, 4.6, -12.2]}>
-      <mesh>
-        <cylinderGeometry args={[2.4, 2.4, 0.35, 32]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[2.4, 2.4, 0.35, 32]} />
         <meshStandardMaterial color="#78350f" metalness={0.3} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0, 0.2]}>
-        <cylinderGeometry args={[2.05, 2.05, 0.1, 32]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh position={[0, 0, 0.2]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[2.05, 2.05, 0.1, 32]} />
         <meshStandardMaterial color="#fef3c7" />
       </mesh>
       {ticks.map((a, i) => (
@@ -58,12 +58,12 @@ function Gear({ position, radius = 1.1, teeth = 8, dir = 1, speed = 0.35 }) {
   })
   return (
     <group ref={ref} position={position}>
-      <mesh>
-        <cylinderGeometry args={[radius, radius, 0.32, 24]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[radius, radius, 0.32, 24]} />
         <meshStandardMaterial color="#8a8a92" metalness={0.7} roughness={0.35} />
       </mesh>
-      <mesh>
-        <cylinderGeometry args={[radius * 0.36, radius * 0.36, 0.34, 16]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[radius * 0.36, radius * 0.36, 0.34, 16]} />
         <meshStandardMaterial color="#3f3f46" metalness={0.6} roughness={0.4} />
       </mesh>
       {toothAngles.map((a, i) => (

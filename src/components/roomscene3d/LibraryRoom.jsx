@@ -44,42 +44,63 @@ function Bookshelf({ position, mirrored = false }) {
   )
 }
 
-// A magic book, hovering open, its pages gently flipping while it bobs and
-// a trail of light sparkles drift up from its spine.
+// A magic book, hovering open like a little tent: two chunky covers hinged
+// on a spine that swing open/closed around the vertical (Y) axis — real
+// book depth, not a flat fan — with a cream page-block on each cover's
+// inner face so the pages actually read as paper, not more cover color.
+// It bobs, slowly turns to show off its shape, and sheds a trail of light
+// sparkles from the spine.
 function FloatingBook({ position, speed = 1, color = '#dc2626' }) {
   const group = useRef()
-  const pageL = useRef()
-  const pageR = useRef()
+  const coverL = useRef()
+  const coverR = useRef()
   const sparkle = useRef()
+  const coverColorR = useMemo(() => new THREE.Color(color).offsetHSL(0, 0, -0.1), [color])
+  const w = 0.5
+  const h = 0.64
   useFrame((state) => {
     const t = state.clock.elapsedTime * speed
     if (group.current) {
       group.current.position.y = position[1] + Math.sin(t * 0.9) * 0.35
-      group.current.rotation.y = Math.sin(t * 0.5) * 0.5
+      group.current.rotation.y = Math.sin(t * 0.5) * 0.6
     }
-    if (pageL.current) pageL.current.rotation.z = 0.55 + Math.sin(t * 2.2) * 0.12
-    if (pageR.current) pageR.current.rotation.z = -0.55 - Math.sin(t * 2.2 + 0.6) * 0.12
+    // covers gently breathe open/closed around the spine, never fully flat
+    const open = 0.4 + Math.sin(t * 1.1) * 0.14
+    if (coverL.current) coverL.current.rotation.y = open
+    if (coverR.current) coverR.current.rotation.y = -open
     if (sparkle.current) {
       const cy = (Math.sin(t * 1.5) * 0.5 + 0.5)
-      sparkle.current.position.y = 0.4 + cy * 1.1
+      sparkle.current.position.y = 0.34 + cy * 1.0
       sparkle.current.material.opacity = 1 - cy
     }
   })
   return (
     <group ref={group} position={position}>
-      <mesh ref={pageL} rotation={[0, 0, 0.55]} position={[-0.02, 0, 0]}>
-        <planeGeometry args={[0.9, 0.62]} />
-        <meshStandardMaterial color={color} side={THREE.DoubleSide} roughness={0.6} />
+      <group ref={coverL}>
+        <mesh position={[-w / 2, 0, -0.05]}>
+          <boxGeometry args={[w, h, 0.05]} />
+          <meshStandardMaterial color={color} roughness={0.55} />
+        </mesh>
+        <mesh position={[-w / 2, 0, 0.02]}>
+          <boxGeometry args={[w * 0.9, h * 0.88, 0.1]} />
+          <meshStandardMaterial color="#fdf6e3" roughness={0.95} />
+        </mesh>
+      </group>
+      <group ref={coverR}>
+        <mesh position={[w / 2, 0, -0.05]}>
+          <boxGeometry args={[w, h, 0.05]} />
+          <meshStandardMaterial color={coverColorR} roughness={0.55} />
+        </mesh>
+        <mesh position={[w / 2, 0, 0.02]}>
+          <boxGeometry args={[w * 0.9, h * 0.88, 0.1]} />
+          <meshStandardMaterial color="#fffaf0" roughness={0.95} />
+        </mesh>
+      </group>
+      <mesh>
+        <boxGeometry args={[0.08, h, 0.16]} />
+        <meshStandardMaterial color="#fde68a" roughness={0.5} />
       </mesh>
-      <mesh ref={pageR} rotation={[0, 0, -0.55]} position={[0.02, 0, 0]}>
-        <planeGeometry args={[0.9, 0.62]} />
-        <meshStandardMaterial color={new THREE.Color(color).offsetHSL(0, 0, -0.08)} side={THREE.DoubleSide} roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[0.04, 0.62, 0.06]} />
-        <meshStandardMaterial color="#fde68a" />
-      </mesh>
-      <mesh ref={sparkle} position={[0, 0.4, 0]}>
+      <mesh ref={sparkle} position={[0, 0.34, 0]}>
         <sphereGeometry args={[0.05, 8, 8]} />
         <meshBasicMaterial color="#fde047" transparent opacity={1} />
       </mesh>

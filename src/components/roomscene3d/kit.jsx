@@ -1,6 +1,7 @@
-import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import particleFire from 'three-particle-fire'
 
 /**
  * Shared building blocks for the per-floor 3D room scenes. Keeping these
@@ -8,6 +9,41 @@ import * as THREE from 'three'
  * gets the same quality bar for lighting/animation, and a floor's own file
  * only has to describe what makes that room special.
  */
+
+// install() throws if called twice (its internal callback list is consumed
+// on the first call) — guard so Vite HMR re-executing this module doesn't
+// crash the scene.
+if (!particleFire.Geometry) particleFire.install({ THREE })
+
+// GPU-animated fire particles (yomotsu/three-particle-fire) — used by both
+// Torch and Candle instead of the old pulsing-cone flame. It builds a plain
+// THREE.Points itself (not an R3F primitive), so we construct it once and
+// mount it with <primitive>, re-driving its shader clock every frame.
+function Flame({ position, radius = 0.13, height = 0.6, particleCount = 50, color = '#f97316', size = 0.55 }) {
+  const { camera, size: viewport } = useThree()
+  const points = useMemo(() => {
+    const geometry = new particleFire.Geometry(radius, height, particleCount)
+    const material = new particleFire.Material({ color: new THREE.Color(color) })
+    material.size = size
+    material.uniforms.size.value = size
+    return new THREE.Points(geometry, material)
+  }, [radius, height, particleCount, color, size])
+
+  useEffect(() => () => {
+    points.geometry.dispose()
+    points.material.dispose()
+  }, [points])
+
+  useEffect(() => {
+    points.material.setPerspective(camera.fov, viewport.height)
+  }, [points, camera.fov, viewport.height])
+
+  useFrame((state, delta) => {
+    points.material.update(delta)
+  })
+
+  return <primitive object={points} position={position} />
+}
 
 // Deterministic pseudo-random, same algorithm as SceneBackground.jsx's, so
 // seeded layouts (stars, dust, orbs) are stable across renders.
@@ -48,11 +84,9 @@ export function Stars({ count = 220, seed = 1, spread = 70, y = [3, 29], z = [-1
 // A flickering wall/floor torch with a real point light, shared by every
 // interior room theme.
 export function Torch({ position, scale = 1 }) {
-  const flame = useRef()
   const light = useRef()
   useFrame((state) => {
     const t = state.clock.elapsedTime
-    if (flame.current) flame.current.scale.set(1 + Math.sin(t * 9) * 0.15, 1 + Math.sin(t * 13 + 1) * 0.2, 1)
     if (light.current) light.current.intensity = 2.2 + Math.sin(t * 10) * 0.6
   })
   return (
@@ -61,18 +95,7 @@ export function Torch({ position, scale = 1 }) {
         <cylinderGeometry args={[0.07, 0.09, 1, 8]} />
         <meshStandardMaterial color="#78350f" roughness={0.8} />
       </mesh>
-      <mesh position={[0, 1.02, 0]}>
-        <sphereGeometry args={[0.16, 10, 10]} />
-        <meshBasicMaterial color="#f59e0b" transparent opacity={0.4} />
-      </mesh>
-      <mesh ref={flame} position={[0, 1.25, 0]}>
-        <coneGeometry args={[0.24, 0.68, 8]} />
-        <meshBasicMaterial color="#f97316" />
-      </mesh>
-      <mesh position={[0, 1.16, 0]} scale={0.55}>
-        <coneGeometry args={[0.24, 0.68, 8]} />
-        <meshBasicMaterial color="#fde047" />
-      </mesh>
+      <Flame position={[0, 1.02, 0]} radius={0.13} height={0.6} particleCount={50} color="#f97316" size={0.55} />
       <pointLight ref={light} position={[0, 1.3, 0.4]} color="#f59e0b" intensity={3.2} distance={8} />
     </group>
   )
@@ -81,11 +104,9 @@ export function Torch({ position, scale = 1 }) {
 // A short table/desk candle — same flicker language as Torch but sized for
 // tabletops (council hall, portrait sconces).
 export function Candle({ position, scale = 1 }) {
-  const flame = useRef()
   const light = useRef()
   useFrame((state) => {
     const t = state.clock.elapsedTime
-    if (flame.current) flame.current.scale.set(1 + Math.sin(t * 11) * 0.18, 1 + Math.sin(t * 15 + 2) * 0.22, 1)
     if (light.current) light.current.intensity = 1.4 + Math.sin(t * 12) * 0.4
   })
   return (
@@ -94,10 +115,7 @@ export function Candle({ position, scale = 1 }) {
         <cylinderGeometry args={[0.05, 0.05, 0.4, 10]} />
         <meshStandardMaterial color="#fef3c7" />
       </mesh>
-      <mesh ref={flame} position={[0, 0.46, 0]}>
-        <coneGeometry args={[0.06, 0.18, 8]} />
-        <meshBasicMaterial color="#fbbf24" />
-      </mesh>
+      <Flame position={[0, 0.4, 0]} radius={0.045} height={0.18} particleCount={20} color="#fbbf24" size={0.3} />
       <pointLight ref={light} position={[0, 0.5, 0]} color="#fbbf24" intensity={1.6} distance={4} />
     </group>
   )

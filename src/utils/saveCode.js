@@ -6,6 +6,7 @@
 // es que un código escrito a mano, adivinado o con un carácter cambiado
 // (p.ej. para intentar saltar de planta) sea rechazado en vez de aceptado.
 import { SKINS } from '../data/skins'
+import { DEFAULT_LIVES } from '../engine/gameConfig'
 
 const VERSION = 1
 const MODES = ['normal', 'pro', 'super-pro', 'super-chachi']
@@ -181,7 +182,7 @@ export async function decodeSaveCode(rawCode) {
     ageMode,
     currentFloor,
     currentRoom,
-    lives: 3,
+    lives: DEFAULT_LIVES,
     score: 0,
     completedGame,
     newGamePlus,

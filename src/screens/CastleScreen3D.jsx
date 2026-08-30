@@ -7,6 +7,7 @@ import { useGame } from '../context/GameContext'
 import { LEVELS } from '../data/levels'
 import { getDefaultCharacter3dId } from '../data/characters3d'
 import { getFloorStatus } from '../engine/floorConfig'
+import { DEFAULT_LIVES } from '../engine/gameConfig'
 import Tower, { FLOOR_HEIGHT, FLOOR_GAP } from '../components/castle3d/Tower'
 import SkyDome from '../components/castle3d/SkyDome'
 import MagicParticles from '../components/castle3d/MagicParticles'
@@ -121,7 +122,7 @@ export default function CastleScreen3D({ viewMode }) {
     if (floor === currentFloor) {
       navigate('/room')
     } else {
-      navigate('/room', { state: { practiceFloor: floor, practiceRoom: 1, practiceLives: 3 } })
+      navigate('/room', { state: { practiceFloor: floor, practiceRoom: 1, practiceLives: DEFAULT_LIVES } })
     }
   }
 

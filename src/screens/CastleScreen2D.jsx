@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useGame } from '../context/GameContext'
 import { getLevelData } from '../data/levels'
 import { getFloorStatus } from '../engine/floorConfig'
+import { DEFAULT_LIVES } from '../engine/gameConfig'
 import HeartsBar from '../components/HeartsBar'
 import Character from '../components/PixiCharacter'
 import ViewModeToggle from '../components/ViewModeToggle'
@@ -114,7 +115,7 @@ export default function CastleScreen2D({ viewMode }) {
                   status={status}
                   onClick={() => {
                     if (status === 'done') {
-                      navigate('/room', { state: { practiceFloor: floor, practiceRoom: 1, practiceLives: 3 } })
+                      navigate('/room', { state: { practiceFloor: floor, practiceRoom: 1, practiceLives: DEFAULT_LIVES } })
                     } else {
                       navigate('/room')
                     }

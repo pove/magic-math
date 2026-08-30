@@ -5,6 +5,7 @@ import { useGame } from '../context/GameContext'
 import { generateQuestion, getMaxUniqueQuestions } from '../engine/mathEngine'
 import { getNormalRoomCount } from '../engine/floorConfig'
 import { hasRoomScene3D } from '../engine/roomScenes3d'
+import { DEFAULT_LIVES } from '../engine/gameConfig'
 import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE } from '../engine/roomAnimations'
 import { SKINS } from '../data/skins'
 import useViewport from '../hooks/useViewport'
@@ -60,7 +61,7 @@ export default function RoomScreen() {
   // se puede jugar esa planta sin tocar el progreso real (vidas, planta actual,
   // puntuación ni disfraces ya desbloqueados).
   const isPractice = !!location.state?.practiceFloor
-  const [practiceLives, setPracticeLives] = useState(() => location.state?.practiceLives ?? 3)
+  const [practiceLives, setPracticeLives] = useState(() => location.state?.practiceLives ?? DEFAULT_LIVES)
 
   const floor = isPractice ? location.state.practiceFloor : (activeProfile?.currentFloor || 1)
   const room = isPractice ? (location.state.practiceRoom || 1) : (activeProfile?.currentRoom || 1)
@@ -97,7 +98,7 @@ export default function RoomScreen() {
   // planta 1 solo repasa la tabla del 2 hasta ×5 → como mucho 5 preguntas, sin repetir).
   const maxUnique = getMaxUniqueQuestions(activeProfile?.ageMode, floor, room, activeProfile?.currentMode)
   const totalQuestions = Math.min(isBoss ? QUESTIONS_BOSS : QUESTIONS_NORMAL, maxUnique)
-  const lives = isPractice ? practiceLives : (activeProfile?.lives ?? 3)
+  const lives = isPractice ? practiceLives : (activeProfile?.lives ?? DEFAULT_LIVES)
   // First room of a floor gets the big "arriving at a new floor" flourish;
   // any other room gets a quicker "walking into the next room" settle.
   const isNewFloor = room === 1
@@ -122,6 +123,12 @@ export default function RoomScreen() {
   const [animState, setAnimState] = useState('idle')
   const [disabled, setDisabled] = useState(false)
   const [feedback, setFeedback] = useState(null)
+  // Options the player has already tried (and gotten wrong) on the current
+  // question — removed from the multiple-choice panel so a second guess has
+  // fewer, better odds instead of just re-showing the same full set. Not
+  // used for the numeric keyboard (there's no discrete "wrong button" to
+  // remove there, per interfaceType === 'keyboard' in AnswerPanel).
+  const [wrongOptions, setWrongOptions] = useState([])
   const [rewardSkinId, setRewardSkinId] = useState(null)
   const [timerKey, setTimerKey] = useState(0)
   const [particles, setParticles] = useState(null)
@@ -146,6 +153,7 @@ export default function RoomScreen() {
     setQuestion(q)
     setDisabled(false)
     setFeedback(null)
+    setWrongOptions([])
     setTimerKey((k) => k + 1)
   }, [activeProfile, floor, room])
 
@@ -193,6 +201,10 @@ export default function RoomScreen() {
       setFeedback('wrong')
       setParticles({ type: 'wrong', key: Date.now() })
       sfx.wrong()
+      // Cross the chosen option off the panel (multiple-choice only —
+      // AnswerPanel ignores this list for the numeric keyboard), so trying
+      // again has one fewer wrong option to pick from.
+      setWrongOptions((prev) => [...prev, answer])
       setTimeout(() => {
         setAnimState('idle')
         if (isPractice) {
@@ -486,6 +498,7 @@ export default function RoomScreen() {
               <AnswerPanel
                 interfaceType={question.interfaceType}
                 options={question.options}
+                excludedOptions={wrongOptions}
                 onAnswer={handleAnswer}
                 disabled={disabled || entering || leaving}
                 ageMode={activeProfile.ageMode}

@@ -21,6 +21,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.1",
     "three": "^0.169.0",
+    "three-particle-fire": "^0.1.0",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

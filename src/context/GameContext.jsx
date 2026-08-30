@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { getBossRoom } from '../engine/floorConfig'
+import { DEFAULT_LIVES } from '../engine/gameConfig'
 import { getCharacter3dById } from '../data/characters3d'
 
 const LS_KEY = 'magic_school_profiles'
@@ -35,7 +36,7 @@ function reducer(state, action) {
         ageMode: action.payload.ageMode,
         currentFloor: 1,
         currentRoom: 1,
-        lives: 3,
+        lives: DEFAULT_LIVES,
         score: 0,
         unlockedSkins: [],
         equippedSkins: { ...DEFAULT_EQUIPPED },
@@ -79,7 +80,7 @@ function reducer(state, action) {
     }
     case 'RESET_FLOOR': {
       const profiles = state.profiles.map((p) =>
-        p.id === action.payload ? { ...p, lives: 3, currentRoom: 1 } : p
+        p.id === action.payload ? { ...p, lives: DEFAULT_LIVES, currentRoom: 1 } : p
       )
       saveProfiles(profiles)
       return { ...state, profiles }
@@ -92,7 +93,7 @@ function reducer(state, action) {
           // Advance floor
           const nextFloor = p.currentFloor + 1
           if (nextFloor > 12) return { ...p, currentRoom: bossRoom } // Will trigger victory
-          return { ...p, currentFloor: nextFloor, currentRoom: 1, lives: 3 }
+          return { ...p, currentFloor: nextFloor, currentRoom: 1, lives: DEFAULT_LIVES }
         }
         return { ...p, currentRoom: p.currentRoom + 1 }
       })
@@ -152,7 +153,7 @@ function reducer(state, action) {
     case 'START_NEW_GAME_PLUS': {
       const profiles = state.profiles.map((p) => {
         if (p.id !== action.payload.id) return p
-        return { ...p, currentFloor: 1, currentRoom: 1, lives: 3, score: 0, completedGame: false, currentMode: action.payload.mode, topModeProgress: null }
+        return { ...p, currentFloor: 1, currentRoom: 1, lives: DEFAULT_LIVES, score: 0, completedGame: false, currentMode: action.payload.mode, topModeProgress: null }
       })
       saveProfiles(profiles)
       return { ...state, profiles }
@@ -172,8 +173,8 @@ function reducer(state, action) {
           ? { currentFloor: p.currentFloor, currentRoom: p.currentRoom, lives: p.lives }
           : p.topModeProgress
         const restored = targetMode === topMode
-          ? topModeProgress || { currentFloor: 1, currentRoom: 1, lives: 3 }
-          : { currentFloor: 12, currentRoom: getBossRoom(12), lives: 3 }
+          ? topModeProgress || { currentFloor: 1, currentRoom: 1, lives: DEFAULT_LIVES }
+          : { currentFloor: 12, currentRoom: getBossRoom(12), lives: DEFAULT_LIVES }
         return { ...p, ...restored, currentMode: targetMode, topModeProgress }
       })
       saveProfiles(profiles)

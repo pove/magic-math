@@ -70,14 +70,22 @@ function VirtualKeyboard({ onAnswer, ageMode }) {
   )
 }
 
-export default function AnswerPanel({ interfaceType, options = [], onAnswer, disabled = false, ageMode = 'young' }) {
+export default function AnswerPanel({ interfaceType, options = [], excludedOptions = [], onAnswer, disabled = false, ageMode = 'young' }) {
   if (interfaceType === 'keyboard') {
+    // No discrete "wrong button" to remove on the numeric keyboard — the
+    // question just stays up so they can type the right answer instead.
     return (
       <div className="flex justify-center">
         <VirtualKeyboard onAnswer={onAnswer} ageMode={ageMode} />
       </div>
     )
   }
+
+  // Cross off options the player already tried and got wrong, so a second
+  // guess has fewer (and better) options instead of the full original set.
+  const visibleOptions = options.filter(
+    (opt) => !excludedOptions.some((wrong) => String(wrong).trim() === String(opt).trim())
+  )
 
   // Six options across three columns leaves ~110px per button on a phone in
   // portrait, which is below a comfortable tap target — drop to two columns
@@ -86,9 +94,9 @@ export default function AnswerPanel({ interfaceType, options = [], onAnswer, dis
 
   return (
     <div className={`grid ${cols} gap-2 sm:gap-3`}>
-      {options.map((opt, i) => (
+      {visibleOptions.map((opt, i) => (
         <OptionButton
-          key={`${opt}-${i}`}
+          key={opt}
           value={opt}
           onClick={onAnswer}
           disabled={disabled}

@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { DEFAULT_LIVES } from '../engine/gameConfig'
 
-export default function HeartsBar({ lives = 3, maxLives = 3 }) {
+export default function HeartsBar({ lives = DEFAULT_LIVES, maxLives = DEFAULT_LIVES }) {
   return (
     <div className="flex gap-1 sm:gap-2 items-center">
       {Array.from({ length: maxLives }).map((_, i) => (

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useQuality } from './quality'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
@@ -71,6 +72,9 @@ export default function GlowParticles({
   position,
 }) {
   const { gl } = useThree()
+  // Fewer particles on weaker devices
+  const q = useQuality()
+  count = Math.max(8, Math.round(count * q.particles))
   const size2 = useThree((s) => s.size)
 
   const geometry = useMemo(() => {

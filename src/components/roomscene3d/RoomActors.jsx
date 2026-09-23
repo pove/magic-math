@@ -74,7 +74,7 @@ function StageLight({ stage }) {
     <>
       <primitive object={target} />
       <directionalLight position={[stage[0] - 3, 5, stage[2] + 6]} target={target} intensity={1.8} color="#fff1dc" />
-      <pointLight position={[stage[0] + 0.4, 1.8, stage[2] + 2.2]} intensity={4} distance={6} color="#e9d5ff" />
+      <pointLight position={[stage[0] + 0.4, 1.8, stage[2] + 2.2]} intensity={4} distance={6} color="#e9d5ff" userData={{ essential: true }} />
     </>
   )
 }

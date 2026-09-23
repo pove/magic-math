@@ -22,6 +22,7 @@ import { RoomDecor } from './roomscene3d/props'
 import { ROOM_FOV, DEFAULT_FRAMING, computeFraming, measureAnchor } from './roomscene3d/stage'
 import PostFX from './three/PostFX'
 import { QualityProvider } from './three/quality'
+import { SceneWarmup, LoadingScreen, FpsMeter } from './three/SceneLoader'
 import { FLOOR_INTRO_3D, ROOM_INTRO_3D } from '../engine/roomAnimations'
 import { getRoomVariant } from '../engine/roomVariants'
 
@@ -93,7 +94,7 @@ const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2
 
 // Plays the tour over `durationMs`, then keeps a tiny idle sway going and
 // eases onto any new framing (rotation/resize) smoothly.
-function CameraRig({ durationMs, tourRef, framingRef }) {
+function CameraRig({ durationMs, tourRef, framingRef, ready }) {
   const startRef = useRef(null)
   const look = useMemo(() => new THREE.Vector3(), [])
   const target = useMemo(() => new THREE.Vector3(), [])
@@ -101,6 +102,14 @@ function CameraRig({ durationMs, tourRef, framingRef }) {
   useFrame(({ camera, clock }, dt) => {
     const framing = framingRef.current
     const tour = tourRef.current
+    // Hold on the tour's first frame until the scene has finished loading
+    if (!ready) {
+      if (durationMs > 0) {
+        camera.position.copy(tour.pos.getPoint(0))
+        camera.lookAt(tour.look.getPoint(0))
+      }
+      return
+    }
     if (startRef.current === null) {
       startRef.current = clock.elapsedTime
       look.copy(durationMs > 0 ? tour.look.getPoint(0) : lookTarget.set(...framing.look))
@@ -198,9 +207,15 @@ function FovSync() {
  * questionKey, wizard, wizardTalking } — puts the player and the Director
  * Mago inside the room, framed onto the `anchorRef` HTML slot.
  */
-export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', actors, children }) {
+export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', actors, onReady, children }) {
   const watchGl = useCanvasWatchdog()
   const containerRef = useRef()
+  // Behind a loading curtain until models are in and shaders compiled
+  const [ready, setReady] = useState(false)
+  const handleReady = () => {
+    setReady(true)
+    onReady?.()
+  }
   // How far open the back-wall door is (0..1), driven by the entrance choreography
   const doorOpenRef = useRef(0)
   const Scene = SCENES_3D[floor] || CastleEntranceRoom
@@ -239,11 +254,13 @@ export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', 
             gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
             onCreated={({ camera, gl }) => { camera.lookAt(durationMs > 0 ? tour.look.getPoint(0) : new THREE.Vector3(...framing.look)); watchGl(gl) }}
           >
-            <QualityProvider>
+            <QualityProvider measuring={ready}>
+              <SceneWarmup onReady={handleReady} />
+              <FpsMeter />
               <FovSync />
               {/* The daytime cloud bridge brings its own sunlight */}
               {floor !== 11 && <RoomLights variant={variant} />}
-              <CameraRig durationMs={durationMs} tourRef={tourRef} framingRef={framingRef} />
+              <CameraRig durationMs={durationMs} tourRef={tourRef} framingRef={framingRef} ready={ready} />
               {actors && <DoorDriver phase={actors.phase} openRef={doorOpenRef} />}
               {ROOM_THEMES[floor] && <RoomShell theme={ROOM_THEMES[floor]} />}
               <RoomDecor theme={ROOM_THEMES[floor]} doorOpenRef={doorOpenRef} />
@@ -258,6 +275,7 @@ export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', 
         </ErrorBoundary>
       </motion.div>
       <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+      <LoadingScreen visible={!ready} />
       <div className="relative z-10 w-full h-full">{children}</div>
     </div>
   )

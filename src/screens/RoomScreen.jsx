@@ -109,9 +109,12 @@ export default function RoomScreen() {
   // Sequential beats: title fades out → character flies in → question fades in.
   const charDelayMs = introCfg.charDelayMs ?? introCfg.titleDelayMs + titleTotalMs
   const contentDelayMs = charDelayMs + introCfg.charDurationMs
+  // A 3D room first shows a loading screen; the whole choreography (title,
+  // character, question) starts counting only once it reports ready.
+  const [sceneReady, setSceneReady] = useState(!use3DRoom)
   const contentFadeProps = {
     initial: { opacity: 0 },
-    animate: { opacity: 1 },
+    animate: { opacity: sceneReady ? 1 : 0 },
     transition: { duration: introCfg.contentFadeMs / 1000, delay: contentDelayMs / 1000 },
   }
 
@@ -147,13 +150,14 @@ export default function RoomScreen() {
   // Room entrance choreography: play the arrival chime when the "Entrando
   // en..." title pops in, and re-enable input once the question has faded in.
   useEffect(() => {
+    if (!sceneReady) return undefined
     const titleTimer = setTimeout(() => sfx.magic(), introCfg.titleDelayMs)
     const readyTimer = setTimeout(() => setEntering(false), contentDelayMs + introCfg.contentFadeMs)
     const walkTimer = setTimeout(() => setActorPhase('entering'), charDelayMs)
     const standTimer = setTimeout(() => setActorPhase((p) => (p === 'entering' ? 'playing' : p)), charDelayMs + introCfg.charDurationMs)
     return () => { clearTimeout(titleTimer); clearTimeout(readyTimer); clearTimeout(walkTimer); clearTimeout(standTimer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [sceneReady])
 
   const nextQuestion = useCallback(() => {
     const q = generateNewQuestion(activeProfile?.ageMode, floor, room, activeProfile?.currentMode, askedQuestionsRef.current)
@@ -333,6 +337,7 @@ export default function RoomScreen() {
         room={room}
         introLevel={isNewFloor ? 'floor' : 'room'}
         {...(use3DRoom && {
+          onReady: () => setSceneReady(true),
           actors: {
             anchorRef: actorSlotRef,
             profile: activeProfile,
@@ -350,7 +355,7 @@ export default function RoomScreen() {
           // In 3D the title sits near the top so the camera tour stays visible
           className={`pointer-events-none absolute inset-0 z-20 flex justify-center px-6 ${use3DRoom ? 'items-start pt-[9vh]' : 'items-center'}`}
           initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 1, 0] }}
+          animate={{ opacity: sceneReady ? [0, 1, 1, 0] : 0 }}
           transition={{
             duration: titleTotalMs / 1000,
             delay: introCfg.titleDelayMs / 1000,

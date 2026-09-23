@@ -6,7 +6,7 @@ import { generateQuestion, getMaxUniqueQuestions } from '../engine/mathEngine'
 import { getNormalRoomCount } from '../engine/floorConfig'
 import { hasRoomScene3D } from '../engine/roomScenes3d'
 import { DEFAULT_LIVES } from '../engine/gameConfig'
-import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE } from '../engine/roomAnimations'
+import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE, FLOOR_INTRO_3D, ROOM_INTRO_3D, ROOM_LEAVE_3D } from '../engine/roomAnimations'
 import { SKINS } from '../data/skins'
 import useViewport from '../hooks/useViewport'
 import useCastleViewMode from '../hooks/useCastleViewMode'
@@ -102,10 +102,12 @@ export default function RoomScreen() {
   // First room of a floor gets the big "arriving at a new floor" flourish;
   // any other room gets a quicker "walking into the next room" settle.
   const isNewFloor = room === 1
-  const introCfg = isNewFloor ? FLOOR_INTRO : ROOM_INTRO
+  // 3D rooms run their own, longer choreography (camera tour, door, run-in)
+  const introCfg = use3DRoom ? (isNewFloor ? FLOOR_INTRO_3D : ROOM_INTRO_3D) : isNewFloor ? FLOOR_INTRO : ROOM_INTRO
+  const leaveCfg = use3DRoom ? ROOM_LEAVE_3D : ROOM_LEAVE
   const titleTotalMs = introCfg.titleFadeMs * 2 + introCfg.titleHoldMs
   // Sequential beats: title fades out → character flies in → question fades in.
-  const charDelayMs = introCfg.titleDelayMs + titleTotalMs
+  const charDelayMs = introCfg.charDelayMs ?? introCfg.titleDelayMs + titleTotalMs
   const contentDelayMs = charDelayMs + introCfg.charDurationMs
   const contentFadeProps = {
     initial: { opacity: 0 },
@@ -245,7 +247,7 @@ export default function RoomScreen() {
     setActorPhase('leaving')
     sfx.whoosh()
     setParticles({ type: 'magic', key: Date.now() + 1 })
-    setTimeout(action, ROOM_LEAVE.navigateDelayMs)
+    setTimeout(action, leaveCfg.navigateDelayMs)
   }, [])
 
   const advanceAndGo = useCallback((path, state) => {
@@ -336,7 +338,7 @@ export default function RoomScreen() {
             profile: activeProfile,
             phase: actorPhase,
             enterMs: introCfg.charDurationMs,
-            leaveMs: ROOM_LEAVE.charDurationMs,
+            leaveMs: leaveCfg.charDurationMs,
             action: animState,
             questionKey: `${answered}:${question.questionText}`,
             wizard: true,
@@ -345,7 +347,8 @@ export default function RoomScreen() {
       >
         {/* "Entrando en..." title card, then it fades out before the question shows */}
         <motion.div
-          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6"
+          // In 3D the title sits near the top so the camera tour stays visible
+          className={`pointer-events-none absolute inset-0 z-20 flex justify-center px-6 ${use3DRoom ? 'items-start pt-[9vh]' : 'items-center'}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 1, 0] }}
           transition={{
@@ -440,7 +443,7 @@ export default function RoomScreen() {
                 }
                 transition={
                   leaving
-                    ? { duration: ROOM_LEAVE.charDurationMs / 1000, ease: 'easeIn' }
+                    ? { duration: leaveCfg.charDurationMs / 1000, ease: 'easeIn' }
                     : is3D
                       // The box itself just needs to appear — the walk/grow
                       // motion happens inside it (PlayerAvatar3D's walkIn
@@ -488,7 +491,7 @@ export default function RoomScreen() {
                   }
                   transition={
                     leaving
-                      ? { duration: ROOM_LEAVE.charDurationMs / 1000, ease: 'easeIn' }
+                      ? { duration: leaveCfg.charDurationMs / 1000, ease: 'easeIn' }
                       : {
                           duration: introCfg.charDurationMs / 1000,
                           delay: charDelayMs / 1000,

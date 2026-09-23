@@ -39,9 +39,11 @@ const PLAYER_OFFSET = [-0.6, 0, 0.15]
 const COMPANION_OFFSET = [0.15, 0, 0.6]
 const WIZARD_OFFSET = [0.95, 0, -0.55]
 const WIZARD_SCALE = 0.88
-// Entrance/exit paths, relative to where the player ends up standing
+// Fallback entrance path (relative to the player's spot) when the room has
+// no door to come in through
 const ENTER_FROM = [-3.2, 0, -2.4]
-const EXIT_TO = [3.6, 0, -3.2]
+// The exit portal the Mago opens, relative to the stage spot
+const PORTAL_OFFSET = [-1.9, 0, -2.4]
 
 function getCompanion(activeCompanion) {
   if (!activeCompanion) return null
@@ -175,6 +177,63 @@ function SpellBolt({ from, to, boltKey, onHit }) {
   )
 }
 
+const portalVertex = /* glsl */ `
+  varying vec2 vUv;
+  void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+`
+const portalFragment = /* glsl */ `
+  uniform float uTime;
+  uniform float uOpen;
+  varying vec2 vUv;
+  void main() {
+    vec2 c = vUv * 2.0 - 1.0;
+    float r = length(c);
+    float a = atan(c.y, c.x);
+    float swirl = sin(a * 5.0 + r * 14.0 - uTime * 7.0) * 0.5 + 0.5;
+    vec3 col = mix(vec3(0.45, 0.2, 1.4), vec3(0.2, 1.3, 1.6), swirl);
+    col += vec3(1.8, 1.5, 2.2) * smoothstep(0.35, 0.0, r); // bright core
+    float edge = smoothstep(1.0, 0.82, r);
+    gl_FragColor = vec4(col * (0.6 + swirl * 0.6), edge * uOpen);
+  }
+`
+
+/** Swirling magic portal the Mago opens to send the player on to the next
+ *  room. Opens/closes with `openRef.current` (0..1). */
+function Portal({ position, openRef }) {
+  const group = useRef()
+  const mat = useMemo(
+    () => new THREE.ShaderMaterial({ vertexShader: portalVertex, fragmentShader: portalFragment, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { uTime: { value: 0 }, uOpen: { value: 0 } } }),
+    []
+  )
+  const ring = useRef()
+  const light = useRef()
+  useFrame((state) => {
+    const o = openRef.current
+    mat.uniforms.uTime.value = state.clock.elapsedTime
+    mat.uniforms.uOpen.value = o
+    if (group.current) {
+      group.current.visible = o > 0.01
+      group.current.scale.setScalar(Math.max(0.001, o))
+    }
+    if (ring.current) ring.current.rotation.z = state.clock.elapsedTime * 1.5
+    if (light.current) light.current.intensity = o * 10
+  })
+  return (
+    <group position={[position[0], 1.25, position[2]]}>
+      <group ref={group} rotation={[0, 0.35, 0]} visible={false}>
+        <mesh material={mat}>
+          <circleGeometry args={[1.2, 48]} />
+        </mesh>
+        <mesh ref={ring}>
+          <torusGeometry args={[1.22, 0.06, 8, 48]} />
+          <meshBasicMaterial color={[1.6, 1.1, 3]} toneMapped={false} />
+        </mesh>
+      </group>
+      <pointLight ref={light} color="#a78bfa" intensity={0} distance={7} />
+    </group>
+  )
+}
+
 export default function RoomActors({
   stage = [0, 0, 2.5],
   profile,
@@ -185,6 +244,7 @@ export default function RoomActors({
   questionKey,
   wizard = true,
   wizardTalking = false,
+  entryFrom = null,
 }) {
   const character = getCharacter3dById(profile?.character3dId) || getCharacter3dById(getDefaultCharacter3dId(profile?.gender))
   const companion = getCompanion(profile?.activeCompanion)
@@ -230,7 +290,7 @@ export default function RoomActors({
 
   useEffect(() => {
     if (phase === 'entering') setMoodFor('wave', enterMs + 700)
-    else if (phase === 'leaving') setMoodFor('wave', 0)
+    else if (phase === 'leaving') setMoodFor('cast', 0) // conjures the exit portal
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
@@ -241,7 +301,20 @@ export default function RoomActors({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionKey])
 
-  // --- player movement ------------------------------------------------------
+  const portalAt = useMemo(() => [stage[0] + PORTAL_OFFSET[0], 0, stage[2] + PORTAL_OFFSET[2]], [stage])
+  const from = useMemo(
+    () => entryFrom || [standAt[0] + ENTER_FROM[0], 0, standAt[2] + ENTER_FROM[2]],
+    [entryFrom, standAt]
+  )
+  const portalOpen = useRef(0)
+  const wizardGroup = useRef()
+  const [poofKey, setPoofKey] = useState(0)
+  useEffect(() => {
+    // The Mago pops in with a burst of sparkles as the player arrives
+    if (phase === 'entering') setPoofKey((k) => k + 1)
+  }, [phase])
+
+  // --- movement: run in from the door, run out into the portal -------------
   useFrame((state, dt) => {
     const g = player.current
     if (!g) return
@@ -250,8 +323,25 @@ export default function RoomActors({
       phaseStart.current = state.clock.elapsedTime
     }
     const elapsed = (state.clock.elapsedTime - phaseStart.current) * 1000
+
+    // Wizard: hidden until the entrance, then springs in
+    if (wizardGroup.current) {
+      const w = wizardGroup.current
+      if (phase === 'waiting') w.scale.setScalar(0.0001)
+      else if (phase === 'entering') {
+        const t = Math.min(1, elapsed / 600)
+        const spring = 1 - Math.cos(t * Math.PI * 2.5) * Math.exp(-t * 5) // overshoot, settle
+        w.scale.setScalar(Math.max(0.0001, t < 1 ? spring : 1))
+      } else w.scale.setScalar(1)
+    }
+
+    // Exit portal: opens as the Mago casts, closes once the player is through
+    const portalTarget = phase === 'leaving' && elapsed < leaveMs - 150 ? 1 : 0
+    portalOpen.current = THREE.MathUtils.damp(portalOpen.current, portalTarget, portalTarget ? 7 : 9, dt)
+
     let x = standAt[0]
     let z = standAt[2]
+    let scale = 1
     let face = 0.35 // resting: a 3/4 turn, towards the camera and the Mago
     if (phase === 'waiting') {
       g.visible = false
@@ -259,24 +349,38 @@ export default function RoomActors({
     }
     g.visible = true
     if (phase === 'entering') {
-      const t = easeInOut(Math.min(1, elapsed / enterMs))
-      x = standAt[0] + ENTER_FROM[0] * (1 - t)
-      z = standAt[2] + ENTER_FROM[2] * (1 - t)
-      face = t < 0.92 ? Math.atan2(-ENTER_FROM[0], -ENTER_FROM[2]) : 0.35
+      const t = Math.min(1, elapsed / enterMs)
+      const e = 1 - (1 - t) ** 2 // bursts out of the door, eases into place
+      // Curve out to the left so the run swings round the Mago, not through him
+      const cx = Math.min(from[0], standAt[0]) - 1.6
+      const cz = standAt[2] - 4
+      const u = 1 - e
+      x = u * u * from[0] + 2 * u * e * cx + e * e * standAt[0]
+      z = u * u * from[2] + 2 * u * e * cz + e * e * standAt[2]
+      // Face along the curve (its tangent)
+      const dx = 2 * u * (cx - from[0]) + 2 * e * (standAt[0] - cx)
+      const dz = 2 * u * (cz - from[2]) + 2 * e * (standAt[2] - cz)
+      face = t < 0.9 ? Math.atan2(dx, dz) : 0.35
     } else if (phase === 'leaving') {
-      const t = Math.min(1, elapsed / leaveMs)
-      const e = t * t
-      x = standAt[0] + EXIT_TO[0] * e
-      z = standAt[2] + EXIT_TO[2] * e
-      face = Math.atan2(EXIT_TO[0], EXIT_TO[2])
+      const runStart = 300
+      const runEnd = leaveMs * 0.72
+      const t = Math.min(1, Math.max(0, (elapsed - runStart) / (runEnd - runStart)))
+      const e = t * t * (3 - 2 * t)
+      x = standAt[0] + (portalAt[0] - standAt[0]) * e
+      z = standAt[2] + (portalAt[2] - standAt[2]) * e
+      if (elapsed > runStart) face = Math.atan2(portalAt[0] - standAt[0], portalAt[2] - standAt[2])
+      // Swallowed by the portal: shrink and spin away
+      const gone = Math.min(1, Math.max(0, (elapsed - runEnd) / (leaveMs - runEnd)))
+      scale = 1 - gone
+      face += gone * 6
     }
     g.position.set(x, standAt[1], z)
-    g.rotation.y = THREE.MathUtils.damp(g.rotation.y, face, 10, dt)
+    g.scale.setScalar(Math.max(0.0001, scale))
+    g.rotation.y = phase === 'leaving' && scale < 1 ? face : THREE.MathUtils.damp(g.rotation.y, face, 10, dt)
   })
 
   const playerAnim =
-    phase === 'entering' ? ANIM.walk
-      : phase === 'leaving' ? ANIM.run
+    phase === 'entering' || phase === 'leaving' ? ANIM.run
         : action === 'correctAnswer' ? ANIM.wave
           : action === 'wrongAnswer' ? ANIM.hit
             : character.animation
@@ -308,14 +412,20 @@ export default function RoomActors({
 
       {wizard && (
         <group>
+          <group ref={wizardGroup} position={wizardAt}>
+            <group position={[-wizardAt[0], -wizardAt[1], -wizardAt[2]]}>
           <Wizard position={wizardAt} scale={WIZARD_SCALE} rotation={-0.5} mood={wizardTalking && wizardMood === 'idle' ? 'talk' : wizardMood} talking={wizardTalking} />
           <group position={wizardAt}>
             <BlobShadow size={1.4} opacity={0.5} />
           </group>
+            </group>
+          </group>
+          <SparkleBurst position={[wizardAt[0], 1.2, wizardAt[2]]} burstKey={poofKey} color="#c4b5fd" count={34} />
           <SpellBolt from={staffTip} to={chest} boltKey={boltKey} onHit={() => setBurstKey((k) => k + 1)} />
         </group>
       )}
       <SparkleBurst position={chest} burstKey={burstKey} />
+      <Portal position={portalAt} openRef={portalOpen} />
     </group>
   )
 }

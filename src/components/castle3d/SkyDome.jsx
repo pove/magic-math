@@ -78,8 +78,8 @@ const fragmentShader = /* glsl */ `
     // Base gradient: warm-violet glow at the horizon into near-black zenith
     float t = smoothstep(-0.15, 0.65, up);
     vec3 col = mix(uHorizon, uZenith, t);
-    // Below the horizon keep the mist colour (the island floats in it)
-    col = mix(col, uHorizon * 0.8, smoothstep(0.0, -0.3, up));
+    // Below the horizon the night deepens again — the island floats in open sky
+    col = mix(col, mix(uHorizon * 0.8, uZenith, smoothstep(-0.05, -0.7, up)), smoothstep(0.0, -0.05, up));
 
     // Nebula: two-tone fbm clouds, strongest mid-sky
     float n = fbm(dir * 2.2 + vec3(0.0, 0.0, uTime * 0.004));
@@ -96,7 +96,7 @@ const fragmentShader = /* glsl */ `
     col += aurora * band * curtain * (0.35 + rays * 0.65) * facing * 0.55;
 
     // Stars (fade out toward the glowing horizon)
-    float starMask = smoothstep(0.02, 0.25, up) * (1.0 - neb * 0.5);
+    float starMask = smoothstep(0.02, 0.25, abs(up)) * (1.0 - neb * 0.5);
     col += (starLayer(dir, 90.0, 0.35, 1.0) + starLayer(dir, 180.0, 0.25, 0.8) * 0.7 + starLayer(dir, 45.0, 0.08, 1.6) * 1.4) * starMask;
 
     // Moon: disc with mottled maria + wide halo
@@ -158,7 +158,6 @@ export default function SkyDome() {
   return (
     <>
       <color attach="background" args={['#05030f']} />
-      <fogExp2 attach="fog" args={[HORIZON, 0.0065]} />
       <SkyShaderDome />
     </>
   )

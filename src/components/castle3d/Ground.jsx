@@ -4,7 +4,6 @@ import * as THREE from 'three'
 import { stoneTextures, glowTexture } from '../three/textures'
 import { useQuality } from '../three/quality'
 import GrassField from '../three/GrassField'
-import { HORIZON } from './SkyDome'
 
 /**
  * The castle's floating island: rolling meadow on top (wind-blown grass,
@@ -590,134 +589,6 @@ function Islets() {
   )
 }
 
-const cloudVertex = /* glsl */ `
-  varying vec2 vUv;
-  varying vec3 vWorld;
-  void main() {
-    vUv = uv;
-    vec4 w = modelMatrix * vec4(position, 1.0);
-    vWorld = w.xyz;
-    gl_Position = projectionMatrix * viewMatrix * w;
-  }
-`
-const cloudFragment = /* glsl */ `
-  uniform float uTime;
-  uniform vec3 uColor;
-  uniform vec3 uShade;
-  uniform float uOpacity;
-  uniform float uScale;
-  varying vec2 vUv;
-  varying vec3 vWorld;
-  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-  float noise(vec2 p) {
-    vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
-  }
-  float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += noise(p) * a; p = p * 2.02 + 7.3; a *= 0.5; } return s; }
-  void main() {
-    vec2 p = vWorld.xz * uScale;
-    float n = fbm(p + vec2(uTime * 0.012, uTime * 0.006));
-    float n2 = fbm(p * 1.7 - vec2(uTime * 0.008, 0.0));
-    float d = smoothstep(0.38, 0.75, n * 0.7 + n2 * 0.4);
-    float dist = length(vWorld.xz);
-    float fade = smoothstep(420.0, 120.0, dist);
-    vec3 col = mix(uShade, uColor, smoothstep(0.4, 0.9, n2));
-    gl_FragColor = vec4(col, d * fade * uOpacity);
-  }
-`
-
-/** Sea of clouds far below — two layers for parallax as the camera orbits. */
-function CloudSea() {
-  const mats = useMemo(
-    () =>
-      [
-        { color: '#5b4a9e', shade: '#221a4a', opacity: 0.95, scale: 0.018 },
-        { color: '#8b7bd8', shade: '#3a2f7a', opacity: 0.55, scale: 0.03 },
-      ].map(
-        (o) =>
-          new THREE.ShaderMaterial({
-            vertexShader: cloudVertex,
-            fragmentShader: cloudFragment,
-            transparent: true,
-            depthWrite: false,
-            uniforms: {
-              uTime: { value: 0 },
-              uColor: { value: new THREE.Color(o.color) },
-              uShade: { value: new THREE.Color(o.shade) },
-              uOpacity: { value: o.opacity },
-              uScale: { value: o.scale },
-            },
-          })
-      ),
-    []
-  )
-  useFrame((state) => mats.forEach((m) => (m.uniforms.uTime.value = state.clock.elapsedTime)))
-  return (
-    <group>
-      <mesh material={mats[0]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -46, 0]}>
-        <planeGeometry args={[900, 900]} />
-      </mesh>
-      <mesh material={mats[1]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -36, 0]}>
-        <planeGeometry args={[900, 900]} />
-      </mesh>
-    </group>
-  )
-}
-
-/** Soft cloud wisps drifting around the tower at different heights. */
-function Wisps() {
-  const group = useRef()
-  const puff = useMemo(() => {
-    const c = document.createElement('canvas')
-    c.width = c.height = 256
-    const ctx = c.getContext('2d')
-    const r = rng(12)
-    for (let i = 0; i < 14; i++) {
-      const x = 60 + r() * 136
-      const y = 90 + r() * 70
-      const rad = 30 + r() * 50
-      const g = ctx.createRadialGradient(x, y, 0, x, y, rad)
-      g.addColorStop(0, 'rgba(255,255,255,0.35)')
-      g.addColorStop(1, 'rgba(255,255,255,0)')
-      ctx.fillStyle = g
-      ctx.fillRect(0, 0, 256, 256)
-    }
-    const tex = new THREE.CanvasTexture(c)
-    tex.colorSpace = THREE.SRGBColorSpace
-    return tex
-  }, [])
-  const wisps = useMemo(() => {
-    const r = rng(77)
-    return Array.from({ length: 16 }, () => ({
-      a: r() * Math.PI * 2,
-      // Beyond the camera's max orbit distance, so a wisp never drifts
-      // between the camera and the castle and fogs it over.
-      dist: 95 + r() * 60,
-      y: -4 + r() * 70,
-      s: 30 + r() * 30,
-      speed: (0.006 + r() * 0.01) * (r() < 0.5 ? 1 : -1),
-      o: 0.18 + r() * 0.2,
-    }))
-  }, [])
-  useFrame((state) => {
-    const t = state.clock.elapsedTime
-    group.current?.children.forEach((c, i) => {
-      const w = wisps[i]
-      const a = w.a + t * w.speed
-      c.position.set(Math.cos(a) * w.dist, w.y, Math.sin(a) * w.dist)
-    })
-  })
-  return (
-    <group ref={group}>
-      {wisps.map((w, i) => (
-        <sprite key={i} scale={[w.s, w.s * 0.5, 1]}>
-          <spriteMaterial map={puff} color="#b9a8ff" transparent opacity={w.o} depthWrite={false} fog />
-        </sprite>
-      ))}
-    </group>
-  )
-}
-
 export default function Ground() {
   return (
     <group>
@@ -730,13 +601,6 @@ export default function Ground() {
       <PathStones />
       <Lanterns />
       <Islets />
-      <CloudSea />
-      <Wisps />
-      {/* Mist hugging the rim, tinted like the horizon */}
-      <mesh position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[R - 2, R + 14, 64]} />
-        <meshBasicMaterial color={HORIZON} transparent opacity={0.25} depthWrite={false} />
-      </mesh>
     </group>
   )
 }

@@ -117,7 +117,7 @@ function fadeNearCamera(shader) {
     'void main() {',
     `void main() {
       float camDist = length(vViewPosition);
-      float keep = smoothstep(3.5, 7.0, camDist);
+      float keep = smoothstep(4.0, 5.5, camDist);
       float dither = fract(dot(floor(gl_FragCoord.xy), vec2(0.5, 0.25)) + fract(floor(gl_FragCoord.y) * 0.5) * 0.5);
       if (keep < 1.0 && dither > keep) discard;`
   )
@@ -332,7 +332,7 @@ function GlowFlowers() {
 /** Layered pines, instanced: trunk + three foliage tiers = 4 draw calls. */
 function Pines() {
   const trunks = useRef()
-  const tiers = [useRef(), useRef(), useRef()]
+  const tiers = [useRef(), useRef(), useRef(), useRef()]
 
   const spots = useMemo(() => {
     const r = rng(42)
@@ -362,7 +362,7 @@ function Pines() {
       trunks.current.setMatrixAt(i, dummy.matrix)
       tiers.forEach((ref) => {
         ref.current.setMatrixAt(i, dummy.matrix)
-        c.setHSL(0.4 + t.hue * 0.07, 0.45, 0.2 + t.hue * 0.08)
+        c.setHSL(0.37 + t.hue * 0.06, 0.55, 0.17 + t.hue * 0.07)
         ref.current.setColorAt(i, c)
       })
     })
@@ -372,30 +372,40 @@ function Pines() {
     })
   }, [spots])
 
+  // Each tier is a cone whose skirt alternates long and short boughs in a
+  // star pattern, the long ones drooping. Driven purely by each vertex's
+  // angle, so the side and the base cap (which duplicate the rim vertices)
+  // always move together — no cracks, no loose spikes. A vertex-colour
+  // gradient darkens the underside and lightens the tip for depth.
   const tierGeo = useMemo(
     () =>
       [
-        [1.7, 2.4, 1.9],
-        [1.3, 2.1, 3.1],
-        [0.85, 1.8, 4.2],
+        [1.75, 2.2, 1.75],
+        [1.4, 2.0, 2.75],
+        [1.05, 1.8, 3.65],
+        [0.65, 1.5, 4.5],
       ].map(([rad, h, y]) => {
-        const g = new THREE.ConeGeometry(rad, h, 9, 2)
-        // Jitter the rim so the tiers look like shaggy boughs, not party hats.
-        // Keyed by the vertex's *position*, not its index: the cone's side and
-        // its base cap duplicate the rim vertices, and index-keyed jitter
-        // pulled those copies apart and opened see-through cracks.
+        const SEG = 14
+        const g = new THREE.ConeGeometry(rad, h, SEG, 1)
         const p = g.attributes.position
+        const col = new Float32Array(p.count * 3)
         for (let i = 0; i < p.count; i++) {
           const x = p.getX(i)
           const z = p.getZ(i)
-          if (p.getY(i) < h / 2 - 0.01 && Math.hypot(x, z) > 0.01) {
-            const key = Math.round(Math.atan2(z, x) * 1000)
-            const k = 1 + (hash2(key * 0.017, rad) - 0.5) * 0.35
+          const len = Math.hypot(x, z)
+          if (len > 0.01) {
+            const idx = Math.round(Math.atan2(z, x) / ((Math.PI * 2) / SEG))
+            const long = ((idx % 2) + 2) % 2 === 0
+            const k = long ? 1 : 0.72
             p.setX(i, x * k)
             p.setZ(i, z * k)
-            p.setY(i, p.getY(i) - hash2(key * 0.013, h) * 0.25)
+            if (long) p.setY(i, p.getY(i) - 0.22)
           }
+          const up = (p.getY(i) + h / 2) / h // 0 at the skirt, 1 at the tip
+          const shade = len > 0.01 || p.getY(i) < 0 ? 0.55 + up * 0.35 : 1.15
+          col.set([shade, shade, shade], i * 3)
         }
+        g.setAttribute("color", new THREE.BufferAttribute(col, 3))
         g.computeVertexNormals()
         g.translate(0, y, 0)
         return g
@@ -411,7 +421,7 @@ function Pines() {
       </instancedMesh>
       {tierGeo.map((g, i) => (
         <instancedMesh key={i} ref={tiers[i]} args={[g, undefined, spots.length]} castShadow receiveShadow>
-          <meshStandardMaterial roughness={0.85} flatShading onBeforeCompile={fadeNearCamera} />
+          <meshStandardMaterial vertexColors roughness={0.9} envMapIntensity={0.25} flatShading onBeforeCompile={fadeNearCamera} />
         </instancedMesh>
       ))}
     </group>

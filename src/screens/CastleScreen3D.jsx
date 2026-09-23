@@ -48,7 +48,16 @@ function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile
   // The cinematic intro flight waits behind the loading screen
   // The top floor is an open terrace: aim at its deck and look down onto it
   const onTerrace = focusY >= (LEVELS.length - 1) * (FLOOR_HEIGHT + FLOOR_GAP) - 0.01
-  useCameraFly({ targetY: onTerrace ? focusY + 3.5 : focusY, lift: onTerrace ? 6.5 : 4, controlsRef, distance: onTerrace ? distance * 0.8 : distance, paused: !ready })
+  // Between the ground and the terrace the characters stand on the wall-walk
+  // at the foot of the floor: aim a little lower so it sits mid-frame
+  const onWalk = !onTerrace && focusY > 1
+  useCameraFly({
+    targetY: onTerrace ? focusY + 3.5 : onWalk ? focusY - 1.5 : focusY,
+    lift: onTerrace ? 6.5 : 4,
+    controlsRef,
+    distance: onTerrace ? distance * 0.8 : distance,
+    paused: !ready,
+  })
 
   // Never let the orbit dip below the meadow: on the lower floors the
   // target sits near ground level, so a fixed max polar angle let the camera

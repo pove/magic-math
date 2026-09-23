@@ -172,14 +172,19 @@ function IslandRoot() {
     const profile = [
       [R + 0.4, -0.5], [R + 0.8, -1.6], [R * 0.93, -4], [R * 0.8, -8], [R * 0.64, -13],
       [R * 0.46, -19], [R * 0.3, -25], [R * 0.16, -31], [R * 0.05, -37], [0.01, -40],
-    ].map(([x, y]) => new THREE.Vector2(x, y))
+    ]
+      // Lathe faces point outward only when the profile runs bottom → top;
+      // top → bottom they faced inward, so from outside the near side was
+      // culled and you saw through the rock to the castle footings.
+      .reverse()
+      .map(([x, y]) => new THREE.Vector2(x, y))
     let g = new THREE.LatheGeometry(profile, 72)
     g = g.toNonIndexed()
     const pos = g.attributes.position
     const colors = new Float32Array(pos.count * 3)
-    const dark = new THREE.Color('#231d38')
-    const mid = new THREE.Color('#3b3358')
-    const warm = new THREE.Color('#4a3a4f')
+    const dark = new THREE.Color('#2f2849')
+    const mid = new THREE.Color('#4d4474')
+    const warm = new THREE.Color('#5e4a66')
     const c = new THREE.Color()
     const v = new THREE.Vector3()
     for (let i = 0; i < pos.count; i++) {
@@ -518,7 +523,9 @@ function Islets() {
   // Rock: closed on top (profile starts at the axis) and jittered by
   // compass direction so the rim the grass sits on stays predictable.
   const rockGeo = useMemo(() => {
-    const profile = [[0.01, 0.12], [2.25, 0.12], [2.4, -0.4], [1.8, -1.6], [1, -3.2], [0.3, -4.5], [0.01, -5]].map(([x, y]) => new THREE.Vector2(x, y))
+    const profile = [[0.01, 0.12], [2.25, 0.12], [2.4, -0.4], [1.8, -1.6], [1, -3.2], [0.3, -4.5], [0.01, -5]]
+      .reverse() // bottom → top, so the faces point outward (see IslandRoot)
+      .map(([x, y]) => new THREE.Vector2(x, y))
     let g = new THREE.LatheGeometry(profile, 12).toNonIndexed()
     const p = g.attributes.position
     for (let i = 0; i < p.count; i++) {
@@ -561,7 +568,7 @@ function Islets() {
       {islets.map((it, i) => (
         <group key={i} scale={it.s}>
           <mesh geometry={rockGeo}>
-            <meshStandardMaterial color="#3b3358" roughness={1} flatShading />
+            <meshStandardMaterial color="#4d4474" roughness={1} flatShading />
           </mesh>
           <mesh geometry={turfGeo} position={[0, 0.08, 0]}>
             <meshStandardMaterial color="#2a7048" roughness={0.95} flatShading />

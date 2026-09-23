@@ -13,6 +13,7 @@ import Tower, { FLOOR_HEIGHT, FLOOR_GAP } from '../components/castle3d/Tower'
 import SkyDome, { MOON_DIR } from '../components/castle3d/SkyDome'
 import PostFX from '../components/three/PostFX'
 import { QualityProvider, useQuality } from '../components/three/quality'
+import { SceneWarmup, LoadingScreen, FpsMeter } from '../components/three/SceneLoader'
 import MagicParticles from '../components/castle3d/MagicParticles'
 import Ground from '../components/castle3d/Ground'
 import useCameraFly from '../components/castle3d/useCameraFly'
@@ -23,7 +24,7 @@ import { ErrorBoundary, useCanvasWatchdog } from '../components/CrashOverlay'
 
 const MIN_CAMERA_Y = 3
 
-function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile }) {
+function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile, ready }) {
   const controlsRef = useRef()
   const { camera, size } = useThree()
 
@@ -44,7 +45,8 @@ function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camera])
 
-  useCameraFly({ targetY: focusY, controlsRef, distance })
+  // The cinematic intro flight waits behind the loading screen
+  useCameraFly({ targetY: focusY, controlsRef, distance, paused: !ready })
 
   // Never let the orbit dip below the meadow: on the lower floors the
   // target sits near ground level, so a fixed max polar angle let the camera
@@ -137,6 +139,7 @@ export default function CastleScreen3D({ viewMode }) {
   const navigate = useNavigate()
   const [selected, setSelected] = useState(null)
   const watchGl = useCanvasWatchdog()
+  const [ready, setReady] = useState(false)
 
   // Reaching the 3D castle (whether picked at creation or toggled later)
   // needs a 3D character on the profile — grant the default one for their
@@ -206,7 +209,10 @@ export default function CastleScreen3D({ viewMode }) {
           gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
         >
           <QualityProvider>
+            <SceneWarmup onReady={() => setReady(true)} />
+            <FpsMeter />
             <Scene
+              ready={ready}
               floorStates={floorStates}
               currentFloor={currentFloor}
               onSelectFloor={handleSelect}
@@ -216,6 +222,7 @@ export default function CastleScreen3D({ viewMode }) {
           </QualityProvider>
         </Canvas>
       </ErrorBoundary>
+      <LoadingScreen visible={!ready} />
 
       {/* HUD — one bar rather than two floating corners, so the left and right
           groups can never overlap on a narrow phone */}

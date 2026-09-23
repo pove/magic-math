@@ -1,6 +1,7 @@
-import { useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { motion } from 'framer-motion'
+import * as THREE from 'three'
 import { ErrorBoundary, useCanvasWatchdog } from './CrashOverlay'
 import CastleEntranceRoom from './roomscene3d/CastleEntranceRoom'
 import LibraryRoom from './roomscene3d/LibraryRoom'
@@ -15,14 +16,17 @@ import CouncilHallRoom from './roomscene3d/CouncilHallRoom'
 import CloudBridgeRoom from './roomscene3d/CloudBridgeRoom'
 import WizardTowerRoom from './roomscene3d/WizardTowerRoom'
 import { AmbientOrbs, MagicDust } from './roomscene3d/kit'
+import RoomActors from './roomscene3d/RoomActors'
+import RoomShell, { ROOM_THEMES } from './roomscene3d/shell'
+import { RoomDecor } from './roomscene3d/props'
+import { ROOM_FOV, DEFAULT_FRAMING, computeFraming, measureAnchor } from './roomscene3d/stage'
 import PostFX from './three/PostFX'
 import { QualityProvider } from './three/quality'
-import { FLOOR_INTRO, ROOM_INTRO } from '../engine/roomAnimations'
+import { SceneWarmup, LoadingScreen, FpsMeter } from './three/SceneLoader'
+import { FLOOR_INTRO_3D, ROOM_INTRO_3D } from '../engine/roomAnimations'
 import { getRoomVariant } from '../engine/roomVariants'
 
 // One 3D room per floor theme, mirroring SceneBackground's SCENES map.
-// Extended floor by floor — see src/engine/roomScenes3d.js for which floors
-// currently have one.
 const SCENES_3D = {
   1: CastleEntranceRoom,
   2: LibraryRoom,
@@ -38,108 +42,205 @@ const SCENES_3D = {
   12: WizardTowerRoom,
 }
 
-// Where the camera settles once the entrance move finishes — every shot
-// below converges on this same spot, so gameplay framing (character +
-// question overlay) stays consistent no matter which room you came from.
-const REST_POSITION = [0, 3.2, 9]
-const LOOK_AT = [0, 2.4, -12]
+// Rooms that open onto the sky get a higher, wider tour.
+const OPEN_AIR = new Set([1, 4, 9, 11, 12])
 
-// The camera orbits LOOK_AT in polar coordinates (azimuth angle + radius +
-// height above the pivot) instead of flying in a straight line. That's what
-// lets an entrance start from miles away at a random angle and swoop/curve
-// its way in to face the room dead-on, rather than sliding in on a fixed
-// rail — every entrance reads differently and never feels like it's on the
-// same track twice.
-function polarOffset(azimuth, radius) {
-  return [Math.sin(azimuth) * radius, Math.cos(azimuth) * radius]
+/** Where the player comes in from: the back-wall door (or the castle gate on
+ *  floor 1, the rainbow on floor 11). */
+export function entryDoor(floor) {
+  if (floor === 1) return { x: 0, z: -9.2 }
+  if (floor === 11) return { x: 0, z: -11.8 }
+  const door = ROOM_THEMES[floor]?.door
+  return door ? { x: door.x, z: door.z } : { x: 0, z: -12.4 }
 }
 
-// Describes REST_POSITION itself in the same polar terms, so the rig always
-// has a consistent target to spiral into regardless of where it started.
-const REST_DX = REST_POSITION[0] - LOOK_AT[0]
-const REST_DZ = REST_POSITION[2] - LOOK_AT[2]
-const REST_RADIUS = Math.hypot(REST_DX, REST_DZ)
-const REST_AZIMUTH = Math.atan2(REST_DX, REST_DZ)
-const REST_HEIGHT = REST_POSITION[1] - LOOK_AT[1]
+// A fresh random tour each visit: which side it sweeps in from.
+function randomShot() {
+  return { side: Math.random() < 0.5 ? -1 : 1 }
+}
 
-// Picks a fresh, random establishing shot: far above and beyond the room,
-// at a wide random angle either side of the final approach direction, with
-// a chance of an extra swirling loop thrown in for flair. Kept within
-// ±120° of dead-on so the start point never ends up looking back through
-// the room's own back wall.
-function randomEstablishingShot() {
-  const azimuthSpread = (120 * Math.PI) / 180
-  const azimuthOffset = (Math.random() * 2 - 1) * azimuthSpread
-  const spiralTurns =
-    Math.random() < 0.4 ? (Math.random() < 0.5 ? -1 : 1) * (Math.PI * 2 * (0.15 + Math.random() * 0.3)) : 0
-  return {
-    azimuth: REST_AZIMUTH + azimuthOffset,
-    radius: REST_RADIUS * (2.3 + Math.random() * 1.6),
-    height: REST_HEIGHT + 9 + Math.random() * 15,
-    spiralTurns,
+/**
+ * The establishing camera tour, as position/look-at curves that end exactly
+ * on the resting framing. A floor's first room gets the grand version (on
+ * floor 1: from high above the whole castle down to its gate); later rooms
+ * a shorter sweep. Interiors stay below the ceiling and inside the walls.
+ */
+function buildTour(floor, framing, shot, grand) {
+  const s = shot.side
+  const door = entryDoor(floor)
+  const open = OPEN_AIR.has(floor)
+  const ceiling = ROOM_THEMES[floor]?.ceiling ? (ROOM_THEMES[floor].height ?? 8) - 1.4 : 12
+  const P = []
+  const L = []
+  if (floor === 1 && grand) {
+    P.push([s * 34, 58, 36]); L.push([0, 40, -19.4])
+    P.push([s * -22, 20, 14]); L.push([0, 10, -19.4])
+    P.push([s * 4, 3.5, 2]); L.push([0, 2.8, -9])
+  } else if (grand) {
+    P.push([s * 10.5, Math.min(open ? 11 : 6.6, ceiling), 11]); L.push([s * -2, 2, -10])
+    P.push([s * -9, Math.min(open ? 6 : 4.5, ceiling), 1]); L.push([s * 2, 2.5, -10])
+    P.push([door.x * 0.5, 2.3, -3.5]); L.push([door.x, 2.2, door.z])
+  } else {
+    P.push([s * 8.5, Math.min(open ? 6 : 4.8, ceiling), 9]); L.push([s * -1, 2.2, -10])
+    P.push([door.x * 0.5 + s * 1.5, 2.4, -1.5]); L.push([door.x, 2.2, door.z])
   }
+  P.push(framing.rest)
+  L.push(framing.look)
+  const curve = (pts) => new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)), false, 'centripetal')
+  return { pos: curve(P), look: curve(L) }
 }
 
-// Cartesian camera position for how far along (0..1) the approach is.
-function cameraPositionAt(shot, eased) {
-  const azimuth = shot.azimuth + (REST_AZIMUTH - shot.azimuth) * eased + shot.spiralTurns * (1 - eased)
-  const radius = shot.radius + (REST_RADIUS - shot.radius) * eased
-  const height = shot.height + (REST_HEIGHT - shot.height) * eased
-  const [dx, dz] = polarOffset(azimuth, radius)
-  return [LOOK_AT[0] + dx, LOOK_AT[1] + height, LOOK_AT[2] + dz]
-}
+const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2
 
-function easeOutCubic(t) {
-  return 1 - (1 - t) ** 3
-}
-
-// Swoops the camera in from a random, far-off establishing shot to
-// REST_POSITION over `durationMs` (matching the 2D scene's own
-// bgDurationMs, so both backgrounds settle in step with the rest of the
-// room's entrance choreography), curving through the angle change rather
-// than sliding in a straight line, then keeps a tiny idle sway going —
-// echoing the flickering torches / twinkling stars the scene already
-// animates.
-function CameraRig({ durationMs, shot, children }) {
+// Plays the tour over `durationMs`, then keeps a tiny idle sway going and
+// eases onto any new framing (rotation/resize) smoothly.
+function CameraRig({ durationMs, tourRef, framingRef, ready }) {
   const startRef = useRef(null)
-  useFrame(({ camera, clock }) => {
-    if (startRef.current === null) startRef.current = clock.elapsedTime
+  const look = useMemo(() => new THREE.Vector3(), [])
+  const target = useMemo(() => new THREE.Vector3(), [])
+  const lookTarget = useMemo(() => new THREE.Vector3(), [])
+  useFrame(({ camera, clock }, dt) => {
+    const framing = framingRef.current
+    const tour = tourRef.current
+    // Hold on the tour's first frame until the scene has finished loading
+    if (!ready) {
+      if (durationMs > 0) {
+        camera.position.copy(tour.pos.getPoint(0))
+        camera.lookAt(tour.look.getPoint(0))
+      }
+      return
+    }
+    if (startRef.current === null) {
+      startRef.current = clock.elapsedTime
+      look.copy(durationMs > 0 ? tour.look.getPoint(0) : lookTarget.set(...framing.look))
+    }
     const elapsedMs = (clock.elapsedTime - startRef.current) * 1000
     const t = durationMs > 0 ? Math.min(1, elapsedMs / durationMs) : 1
-    const eased = easeOutCubic(t)
-
-    const [x, y, z] = cameraPositionAt(shot, eased)
-    camera.position.set(x, y, z)
-    // Sway fades in alongside the approach so it never fights the move.
-    camera.position.x += Math.sin(clock.elapsedTime * 0.15) * 0.4 * eased
-    camera.position.y += Math.sin(clock.elapsedTime * 0.2) * 0.15 * eased
-    camera.lookAt(...LOOK_AT)
+    if (t < 1) {
+      const e = easeInOutSine(t)
+      camera.position.copy(tour.pos.getPoint(e))
+      look.copy(tour.look.getPoint(e))
+    } else {
+      target.set(...framing.rest)
+      target.x += Math.sin(clock.elapsedTime * 0.15) * 0.12
+      target.y += Math.sin(clock.elapsedTime * 0.2) * 0.05
+      camera.position.lerp(target, 1 - Math.exp(-dt * 4))
+      lookTarget.set(...framing.look)
+      look.lerp(lookTarget, 1 - Math.exp(-dt * 4))
+    }
+    camera.lookAt(look)
   })
-  return children
+  return null
 }
 
-export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', children }) {
+/** Swings the entry door open as the player comes through, then shut. */
+function DoorDriver({ phase, openRef }) {
+  const since = useRef({ phase, t: null })
+  useFrame((state, dt) => {
+    if (since.current.phase !== phase || since.current.t === null) since.current = { phase, t: state.clock.elapsedTime }
+    const el = state.clock.elapsedTime - since.current.t
+    const target = phase === 'entering' && el < 1.5 ? 1 : 0
+    openRef.current = THREE.MathUtils.damp(openRef.current, target, target ? 5 : 3, dt)
+  })
+  return null
+}
+
+/**
+ * Tracks the HTML slot reserved for the actors and turns it into a camera
+ * framing (see roomscene3d/stage.js). Re-measures on resize/rotation.
+ */
+function useStageFraming(anchorRef, containerRef, actorsHeight) {
+  const [framing, setFraming] = useState(DEFAULT_FRAMING)
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    const el = anchorRef?.current
+    if (!container || !el) return undefined
+    const update = () => {
+      const c = container.getBoundingClientRect()
+      const anchor = measureAnchor(el, container)
+      if (anchor) setFraming(computeFraming(anchor, c.width / Math.max(1, c.height), actorsHeight))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(container)
+    ro.observe(el)
+    window.addEventListener('resize', update)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', update)
+    }
+  }, [anchorRef, containerRef, actorsHeight])
+  return framing
+}
+
+/** Room lights, tinted per room variant (the old CSS hue filter tinted the
+ *  characters too — tinting the light keeps skin and robes natural). */
+function RoomLights({ variant }) {
+  const colors = useMemo(() => {
+    const shift = (hex) => {
+      const c = new THREE.Color(hex)
+      c.offsetHSL(variant.hue / 360, (variant.sat - 1) * 0.5, 0)
+      return c
+    }
+    return { sky: shift('#8b7fd4'), key: shift('#c4b5fd'), ground: shift('#1a0533') }
+  }, [variant])
+  return (
+    <>
+      <ambientLight intensity={0.9} color={colors.sky} />
+      <directionalLight position={[3, 6, 10]} intensity={1.1} color={colors.key} />
+      <hemisphereLight args={[colors.sky, colors.ground, 1.1]} />
+    </>
+  )
+}
+
+function FovSync() {
+  const camera = useThree((s) => s.camera)
+  useEffect(() => {
+    camera.fov = ROOM_FOV
+    camera.updateProjectionMatrix()
+  }, [camera])
+  return null
+}
+
+/**
+ * actors (optional): { anchorRef, profile, phase, enterMs, leaveMs, action,
+ * questionKey, wizard, wizardTalking } — puts the player and the Director
+ * Mago inside the room, framed onto the `anchorRef` HTML slot.
+ */
+export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', actors, onReady, children }) {
   const watchGl = useCanvasWatchdog()
+  const containerRef = useRef()
+  // Behind a loading curtain until models are in and shaders compiled
+  const [ready, setReady] = useState(false)
+  const handleReady = () => {
+    setReady(true)
+    onReady?.()
+  }
+  // How far open the back-wall door is (0..1), driven by the entrance choreography
+  const doorOpenRef = useRef(0)
   const Scene = SCENES_3D[floor] || CastleEntranceRoom
-  const durationMs = introLevel === 'floor' ? FLOOR_INTRO.bgDurationMs : introLevel === 'room' ? ROOM_INTRO.bgDurationMs : 0
+  const durationMs = introLevel === 'floor' ? FLOOR_INTRO_3D.bgDurationMs : introLevel === 'room' ? ROOM_INTRO_3D.bgDurationMs : 0
   // A fresh random establishing shot each time this room is entered — see
-  // the `key={room}` below, which remounts the Canvas (and so re-rolls this)
-  // on every visit, even revisiting the same room number.
-  const shot = useMemo(() => randomEstablishingShot(), [room])
-  const initialPosition = useMemo(() => cameraPositionAt(shot, 0), [shot])
-  // Same hue/saturation tint + accent color the 2D scene uses per room, so
-  // rooms feel distinct in 3D too without redoing the geometry per room.
+  // the `key={room}` below, which remounts the Canvas (and so re-rolls this).
+  const shot = useMemo(() => randomShot(), [room])
   const variant = getRoomVariant(room)
 
+  const framing = useStageFraming(actors?.anchorRef, containerRef, actors?.wizard ? 2.2 : 1.6)
+  const framingRef = useRef(framing)
+  framingRef.current = framing
+  const tour = useMemo(() => buildTour(floor, framing, shot, introLevel === 'floor'), [floor, framing, shot, introLevel])
+  const tourRef = useRef(tour)
+  tourRef.current = tour
+  const initialPosition = useMemo(() => (durationMs > 0 ? tour.pos.getPoint(0).toArray() : framing.rest), [shot]) // eslint-disable-line react-hooks/exhaustive-deps
+  const door = entryDoor(floor)
+
   return (
-    <div className="relative w-full h-full overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-full overflow-hidden">
       <motion.div
         // key={room}: force a fresh Canvas per room so each visit replays its
-        // own establishing shot from the start, instead of picking up
-        // mid-move from wherever the previous room's camera ended up.
+        // own establishing shot from the start.
         key={room}
         className="absolute inset-0"
-        style={{ filter: `saturate(${variant.sat}) hue-rotate(${variant.hue}deg)` }}
         initial={introLevel !== 'none' ? { opacity: 0 } : false}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -147,27 +248,34 @@ export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', 
         <ErrorBoundary compact>
           {/* `flat`: no renderer tone mapping — PostFX tone-maps after bloom */}
           <Canvas
-            camera={{ fov: 52, position: initialPosition }}
+            camera={{ fov: ROOM_FOV, position: initialPosition }}
             dpr={1}
             flat
             gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
-            onCreated={({ camera, gl }) => { camera.lookAt(...LOOK_AT); watchGl(gl) }}
+            onCreated={({ camera, gl }) => { camera.lookAt(durationMs > 0 ? tour.look.getPoint(0) : new THREE.Vector3(...framing.look)); watchGl(gl) }}
           >
             <QualityProvider>
-              <ambientLight intensity={1.1} />
-              <directionalLight position={[3, 6, 10]} intensity={0.9} color="#c4b5fd" />
-              <hemisphereLight args={['#8b7fd4', '#1a0533', 1.1]} />
-              <CameraRig durationMs={durationMs} shot={shot}>
-                <Scene accent={variant.accent} />
-                <AmbientOrbs accent={variant.accent} seed={floor * 97 + room * 13} />
-                <MagicDust color={variant.accent} seed={floor * 53 + room * 7} />
-              </CameraRig>
-              <PostFX bloom={1} bloomThreshold={0.8} aoRadius={1.6} aoIntensity={1.6} vignette={0.45} />
+              <SceneWarmup onReady={handleReady} />
+              <FpsMeter />
+              <FovSync />
+              {/* The daytime cloud bridge brings its own sunlight */}
+              {floor !== 11 && <RoomLights variant={variant} />}
+              <CameraRig durationMs={durationMs} tourRef={tourRef} framingRef={framingRef} ready={ready} />
+              {actors && <DoorDriver phase={actors.phase} openRef={doorOpenRef} />}
+              {ROOM_THEMES[floor] && <RoomShell theme={ROOM_THEMES[floor]} />}
+              <RoomDecor theme={ROOM_THEMES[floor]} doorOpenRef={doorOpenRef} />
+              <Scene accent={variant.accent} doorOpenRef={doorOpenRef} />
+              <AmbientOrbs accent={variant.accent} seed={floor * 97 + room * 13} />
+              <MagicDust color={variant.accent} seed={floor * 53 + room * 7} />
+              {actors && <RoomActors stage={framing.stage} entryFrom={[door.x, 0, door.z + 0.9]} {...actors} />}
+              {/* The daytime cloud bridge is bright everywhere: only its sun and rainbow should bloom */}
+              <PostFX bloom={1} bloomThreshold={floor === 11 ? 1.6 : 0.8} aoRadius={1.6} aoIntensity={1.6} vignette={0.45} />
             </QualityProvider>
           </Canvas>
         </ErrorBoundary>
       </motion.div>
-      <div className="absolute inset-0 bg-black/25 pointer-events-none" />
+      <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+      <LoadingScreen visible={!ready} />
       <div className="relative z-10 w-full h-full">{children}</div>
     </div>
   )

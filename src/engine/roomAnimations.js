@@ -42,3 +42,35 @@ export const ROOM_LEAVE = {
   // Kept >= charDurationMs so the fly-off is fully visible before the cut.
   navigateDelayMs: 1500,
 }
+
+// 3D rooms tell the same story on stage: the camera tours the room first
+// (with the title shown at the top so it doesn't hide the view), the Mago
+// pops in, the back door swings open and the player runs in from it to
+// their spot, then the question appears. `charDelayMs` is when the door
+// opens and the run begins; `charDurationMs` is the run itself.
+export const FLOOR_INTRO_3D = {
+  bgDurationMs: 6500,     // the grand camera tour of a floor's first room
+  titleDelayMs: 600,
+  titleFadeMs: 500,
+  titleHoldMs: 3400,
+  charDelayMs: 6200,      // the door opens as the tour settles
+  charDurationMs: 2600,
+  contentFadeMs: 600,
+}
+
+export const ROOM_INTRO_3D = {
+  bgDurationMs: 3000,
+  titleDelayMs: 250,
+  titleFadeMs: 400,
+  titleHoldMs: 1900,
+  charDelayMs: 2800,
+  charDurationMs: 2300,
+  contentFadeMs: 500,
+}
+
+// Leaving a 3D room: the Mago casts a portal open, the player runs to it,
+// is drawn in, and it collapses (see RoomActors for the beats).
+export const ROOM_LEAVE_3D = {
+  charDurationMs: 2200,
+  navigateDelayMs: 2450,
+}

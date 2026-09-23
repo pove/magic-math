@@ -8,16 +8,16 @@ function OptionButton({ value, onClick, disabled, ageMode, index = 0 }) {
     <motion.button
       onClick={() => { sfx.click(); onClick(value) }}
       disabled={disabled}
-      className="relative min-h-[64px] short:min-h-[44px] bg-gradient-to-b from-white/25 to-white/10 hover:from-amber-300/30 hover:to-white/15 backdrop-blur-md rounded-2xl border-2 border-white/30 hover:border-amber-400 font-title text-white shadow-lg shadow-purple-900/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors overflow-hidden"
+      className="relative min-h-[52px] sm:min-h-[56px] short:min-h-[40px] bg-gradient-to-b from-white/25 to-white/10 hover:from-amber-300/30 hover:to-white/15 backdrop-blur-md rounded-2xl border-2 border-white/30 hover:border-amber-400 font-title text-white shadow-lg shadow-purple-900/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors overflow-hidden"
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
-      whileHover={disabled ? {} : { scale: 1.06, rotate: [-0.5, 0.5, 0] }}
+      whileHover={disabled ? {} : { scale: 1.03, rotate: [-0.5, 0.5, 0] }}
       whileTap={disabled ? {} : { scale: 0.92 }}
     >
       <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent" />
       <span
-        className={isYoung ? 'text-xl sm:text-2xl short:text-lg py-4 short:py-2 px-3 sm:px-4 inline-block uppercase' : 'text-lg sm:text-xl short:text-base py-3 short:py-2 px-3 sm:px-4 inline-block'}
+        className={isYoung ? 'text-lg sm:text-xl short:text-base py-3 short:py-1.5 px-3 inline-block uppercase' : 'text-base sm:text-lg short:text-sm py-2.5 short:py-1.5 px-3 inline-block'}
         style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
       >
         {isYoung ? String(value).toUpperCase() : value}

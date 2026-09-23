@@ -34,6 +34,8 @@ export default function BossScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const [joke] = useState(getRandomJoke)
+  // 3D rooms draw the player and the Mago inside the scene, framed onto this slot
+  const actorSlotRef = useRef(null)
   const { isCompact, isShort } = useViewport()
   const { mode: castleViewMode } = useCastleViewMode()
   const directorSize = isShort ? 110 : isCompact ? 140 : 170
@@ -60,13 +62,22 @@ export default function BossScreen() {
   return (
     <div className="h-dvh w-full overflow-hidden">
       <Suspense fallback={<div className="fixed inset-0 bg-[#1a0533]" />}>
-      <SceneComponent floor={displayFloor} introLevel="none">
+      <SceneComponent
+        floor={displayFloor}
+        introLevel="none"
+        {...(use3DRoom && {
+          actors: { anchorRef: actorSlotRef, profile: activeProfile, phase: 'playing', wizard: true, wizardTalking: true },
+        })}
+      >
         <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto overflow-x-hidden">
           <button
             onClick={() => { sfx.click(); navigate('/castle') }}
             className="absolute top-4 left-4 text-white/50 hover:text-white/90 text-xl transition-colors"
             title="Volver al castillo"
           >🏰</button>
+          {use3DRoom ? (
+            <div ref={actorSlotRef} className="shrink-0" style={{ width: Math.round(character3dSize * 1.9), height: Math.round(character3dSize * 1.15), maxWidth: 'calc(100vw - 24px)' }} />
+          ) : (
           <div className="shrink-0 flex items-end justify-center gap-2 sm:gap-4">
             <motion.div
               // rotate/scale get baked into the 3D canvas's pixel size (r3f
@@ -98,6 +109,7 @@ export default function BossScreen() {
               <DirectorMago animationState="idle" size={directorSize} talking />
             </motion.div>
           </div>
+          )}
 
           <motion.div
             className="max-w-lg w-full bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-md rounded-3xl border-2 border-amber-400/40 shadow-xl shadow-purple-900/50 p-4 sm:p-6 text-center"

@@ -63,7 +63,7 @@ const LOOK = {
  * status: 'locked' | 'done' | 'active'
  * r: bottom radius of this floor (the keep tapers as it goes up)
  */
-export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
+export default function FloorNode({ level, index, status, onSelect, r = 7.8, showLabels = true }) {
   const group = useRef()
   const ring = useRef()
   const merlons = useRef()
@@ -201,6 +201,8 @@ export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
           never floats into the gap toward the floor above. The badge glyph
           sits pinned beside the number so the status is never ambiguous:
           ✓ done, 🔒 locked, ★ the floor you're currently on. */}
+      {showLabels && (
+      <>
       <Billboard position={[0, 2, 0]} radius={rTop + 1.2}>
         <Text
           position={[-0.55, 0, 0]}
@@ -237,6 +239,8 @@ export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
           {level.name}
         </Text>
       </Billboard>
+      </>
+      )}
     </group>
   )
 }

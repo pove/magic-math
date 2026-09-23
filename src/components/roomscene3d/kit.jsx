@@ -21,7 +21,7 @@ if (!particleFire.Geometry) particleFire.install({ THREE })
 // Torch and Candle instead of the old pulsing-cone flame. It builds a plain
 // THREE.Points itself (not an R3F primitive), so we construct it once and
 // mount it with <primitive>, re-driving its shader clock every frame.
-function Flame({ position, radius = 0.13, height = 0.6, particleCount = 50, color = '#f97316', size = 0.55 }) {
+export function Flame({ position, radius = 0.13, height = 0.6, particleCount = 50, color = '#f97316', size = 0.55 }) {
   const { camera, size: viewport } = useThree()
   const points = useMemo(() => {
     const geometry = new particleFire.Geometry(radius, height, particleCount)
@@ -122,7 +122,7 @@ export function Torch({ position, scale = 1 }) {
 
 // A short table/desk candle — same flicker language as Torch but sized for
 // tabletops (council hall, portrait sconces).
-export function Candle({ position, scale = 1 }) {
+export function Candle({ position, scale = 1, light: withLight = true }) {
   const light = useRef()
   useFrame((state) => {
     const t = state.clock.elapsedTime
@@ -136,52 +136,69 @@ export function Candle({ position, scale = 1 }) {
       </mesh>
       <Flame position={[0, 0.4, 0]} radius={0.045} height={0.18} particleCount={20} color="#fbbf24" size={0.3} />
       <FlameHalo position={[0, 0.48, 0]} scale={1.1} color="#ffc14d" />
-      <pointLight ref={light} position={[0, 0.5, 0]} color="#fbbf24" intensity={1.6} distance={4} />
+      {withLight && <pointLight ref={light} position={[0, 0.5, 0]} color="#fbbf24" intensity={1.6} distance={4} />}
     </group>
   )
 }
 
 export function DistantTower({ position, height = 4.4, radius = 1, color = '#241547' }) {
+  // Round tower silhouette with a conical roof and a few lit windows —
+  // reads as "more castle" out in the night rather than a grey block.
+  const tex = useMemo(() => stoneTextures(1, height / 3), [height])
+  const windows = useMemo(() => [0.35, 0.62].map((f, i) => [Math.sin(i * 2.2) * radius * 0.98, height * f, Math.cos(i * 2.2) * radius * 0.98]), [height, radius])
   return (
     <group position={position}>
       <mesh position={[0, height / 2, 0]}>
-        <boxGeometry args={[radius * 2, height, radius * 2]} />
-        <meshStandardMaterial color={color} />
+        <cylinderGeometry args={[radius, radius * 1.08, height, 20]} />
+        <meshStandardMaterial {...tex} color={new THREE.Color(color).multiplyScalar(2.5)} roughness={0.9} />
       </mesh>
-      <mesh position={[0, height + height * 0.18, 0]}>
-        <coneGeometry args={[radius * 1.5, height * 0.4, 4]} />
-        <meshStandardMaterial color={color} />
+      <mesh position={[0, height + height * 0.2, 0]}>
+        <coneGeometry args={[radius * 1.35, height * 0.45, 20]} />
+        <meshStandardMaterial color={new THREE.Color(color).multiplyScalar(1.6)} roughness={0.8} />
       </mesh>
+      {windows.map((p, i) => (
+        <mesh key={i} position={p} rotation={[0, Math.atan2(p[0], p[2]), 0]}>
+          <planeGeometry args={[0.28, 0.5]} />
+          <meshBasicMaterial color={[3, 2.2, 0.9]} toneMapped={false} />
+        </mesh>
+      ))}
     </group>
   )
 }
 
 export function Window({ position, glow = '#4338ca' }) {
+  // Arched stone window with warm light behind leaded panes
+  const tex = useMemo(() => stoneTextures(0.3, 0.4), [])
+  const light = useMemo(() => new THREE.Color(glow).lerp(new THREE.Color('#ffc46b'), 0.6).multiplyScalar(2), [glow])
   return (
     <group position={position}>
       <mesh>
-        <boxGeometry args={[1.25, 1.85, 0.22]} />
-        <meshStandardMaterial color="#52525b" roughness={0.7} />
+        <boxGeometry args={[1.5, 2.2, 0.3]} />
+        <meshStandardMaterial {...tex} color="#8a82a8" roughness={0.9} />
       </mesh>
-      <mesh position={[0, 0, 0.12]}>
-        <planeGeometry args={[0.9, 1.4]} />
-        <meshBasicMaterial color={glow} />
+      <mesh position={[0, 0.05, 0.16]}>
+        <planeGeometry args={[0.95, 1.55]} />
+        <meshBasicMaterial color={light} toneMapped={false} />
       </mesh>
-      <mesh position={[0, 0, 0.13]}>
-        <planeGeometry args={[0.9, 0.06]} />
-        <meshBasicMaterial color="#3f3f46" />
+      <mesh position={[0, 0.83, 0.16]}>
+        <circleGeometry args={[0.475, 20, 0, Math.PI]} />
+        <meshBasicMaterial color={light} toneMapped={false} />
       </mesh>
-      <mesh position={[0, 0, 0.13]}>
-        <planeGeometry args={[0.06, 1.4]} />
-        <meshBasicMaterial color="#3f3f46" />
-      </mesh>
-      <mesh position={[position[0] > 0 ? -0.22 : 0.22, 0.32, 0.14]}>
-        <circleGeometry args={[0.13, 16]} />
-        <meshBasicMaterial color="#fef9c3" />
-      </mesh>
-      <mesh position={[0, -1.02, 0.15]} rotation={[-0.15, 0, 0]}>
-        <boxGeometry args={[1.5, 0.12, 0.35]} />
-        <meshStandardMaterial color="#71717a" />
+      {[-0.24, 0.24].map((x) => (
+        <mesh key={x} position={[x, 0.2, 0.17]}>
+          <boxGeometry args={[0.04, 1.9, 0.02]} />
+          <meshStandardMaterial color="#2a2533" />
+        </mesh>
+      ))}
+      {[-0.35, 0.35].map((y) => (
+        <mesh key={y} position={[0, y, 0.17]}>
+          <boxGeometry args={[0.95, 0.04, 0.02]} />
+          <meshStandardMaterial color="#2a2533" />
+        </mesh>
+      ))}
+      <mesh position={[0, -1.1, 0.18]}>
+        <boxGeometry args={[1.7, 0.14, 0.4]} />
+        <meshStandardMaterial {...tex} color="#7a7298" />
       </mesh>
     </group>
   )
@@ -266,38 +283,73 @@ export function StoneFloor({ baseColor = '#3f3147', tileColor = '#4c3d5c', width
 // Battlemented back wall — the same silhouette used by the castle entrance,
 // reusable by any floor that wants a crenellated skyline instead of a plain
 // wall (towers, crypt exterior, etc).
-export function CrenellatedWall({ z = -13, color = '#544a72', emissive = '#241c3d' }) {
+export function CrenellatedWall({ z = -13, color = '#544a72' }) {
+  // Textured curtain wall with a walkway ledge and merlons
   const crenellations = useMemo(() => Array.from({ length: 13 }, (_, i) => -12 + i * 2), [])
+  const wallTex = useMemo(() => stoneTextures(5, 6 / 3.4), [])
+  const blockTex = useMemo(() => stoneTextures(0.3, 0.3), [])
+  const tint = useMemo(() => new THREE.Color(color).multiplyScalar(2.4), [color])
   return (
     <group>
-      <mesh position={[0, 3, z]}>
+      <mesh position={[0, 3, z]} castShadow receiveShadow>
         <boxGeometry args={[24, 6, 1.2]} />
-        <meshStandardMaterial color={color} roughness={0.85} emissive={emissive} emissiveIntensity={0.4} />
+        <meshStandardMaterial {...wallTex} color={tint} roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 6.05, z + 0.3]}>
+        <boxGeometry args={[24.4, 0.2, 1.8]} />
+        <meshStandardMaterial {...blockTex} color={tint} roughness={0.9} />
       </mesh>
       {crenellations.map((x, i) => (
-        <mesh key={i} position={[x, 6.5, z]}>
+        <mesh key={i} position={[x, 6.6, z]} castShadow>
           <boxGeometry args={[1.1, 0.9, 1.3]} />
-          <meshStandardMaterial color={color} roughness={0.85} emissive={emissive} emissiveIntensity={0.4} />
+          <meshStandardMaterial {...blockTex} color={tint} roughness={0.9} />
         </mesh>
       ))}
     </group>
   )
 }
 
+// Fluted stone column with a moulded base and capital. The colour props
+// tint the procedural stone, so each room keeps its palette.
+const fluteCache = new Map()
+function fluteGeometry(radius, height) {
+  const key = radius + ':' + height
+  if (fluteCache.has(key)) return fluteCache.get(key)
+  const g = new THREE.CylinderGeometry(radius, radius * 1.05, height, 48, 1, true)
+  const p = g.attributes.position
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i)
+    const z = p.getZ(i)
+    const a = Math.atan2(z, x)
+    const k = 1 - Math.pow(Math.abs(Math.sin(a * 8)), 0.5) * 0.06 // 16 flutes
+    p.setX(i, x * k)
+    p.setZ(i, z * k)
+  }
+  g.computeVertexNormals()
+  fluteCache.set(key, g)
+  return g
+}
+
 export function Column({ position, height = 4.6, radius = 0.42, color = '#2a2140', capColor = '#3d3158' }) {
+  const tex = useMemo(() => stoneTextures(1, height / 3), [height])
+  const shaft = useMemo(() => new THREE.MeshStandardMaterial({ ...tex, color: new THREE.Color(color).multiplyScalar(2.6), roughness: 0.85 }), [tex, color])
+  const trim = useMemo(() => new THREE.MeshStandardMaterial({ ...tex, color: new THREE.Color(capColor).multiplyScalar(2.6), roughness: 0.85 }), [tex, capColor])
   return (
     <group position={position}>
-      <mesh position={[0, height / 2, 0]}>
-        <cylinderGeometry args={[radius, radius, height, 12]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
+      <mesh position={[0, height / 2, 0]} geometry={fluteGeometry(radius, height)} material={shaft} castShadow />
+      {/* Capital: echinus + abacus */}
+      <mesh position={[0, height + 0.05, 0]} material={trim}>
+        <cylinderGeometry args={[radius * 1.35, radius, 0.28, 24]} />
       </mesh>
-      <mesh position={[0, height + 0.12, 0]}>
-        <boxGeometry args={[radius * 2.4, 0.24, radius * 2.4]} />
-        <meshStandardMaterial color={capColor} />
+      <mesh position={[0, height + 0.28, 0]} material={trim}>
+        <boxGeometry args={[radius * 2.9, 0.2, radius * 2.9]} />
       </mesh>
-      <mesh position={[0, -0.1, 0]}>
-        <boxGeometry args={[radius * 2.4, 0.2, radius * 2.4]} />
-        <meshStandardMaterial color={capColor} />
+      {/* Base: torus + plinth */}
+      <mesh position={[0, 0.2, 0]} rotation={[Math.PI / 2, 0, 0]} material={trim}>
+        <torusGeometry args={[radius * 1.1, 0.1, 8, 24]} />
+      </mesh>
+      <mesh position={[0, 0.06, 0]} material={trim}>
+        <boxGeometry args={[radius * 2.9, 0.12, radius * 2.9]} />
       </mesh>
     </group>
   )

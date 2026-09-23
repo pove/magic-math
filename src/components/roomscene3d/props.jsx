@@ -65,9 +65,11 @@ export function Door({ position = [0, 0, -13.2], width = 2.6, height = 4.2, glow
 
   useFrame((state) => {
     const open = openRef?.current ?? 0
-    const a = open * 1.7
-    if (left.current) left.current.rotation.y = a
-    if (right.current) right.current.rotation.y = -a
+    // Leaves swing out into the room (towards the player coming through), so
+    // they never cut into whatever wall the door is set in
+    const a = open * 1.45
+    if (left.current) left.current.rotation.y = -a
+    if (right.current) right.current.rotation.y = a
     if (light.current) light.current.intensity = open * 12
     if (glowPlane.current) {
       const flicker = 0.9 + Math.sin(state.clock.elapsedTime * 6) * 0.05
@@ -77,8 +79,9 @@ export function Door({ position = [0, 0, -13.2], width = 2.6, height = 4.2, glow
 
   return (
     <group position={position}>
-      {/* Warm light waiting behind the door */}
-      <mesh ref={glowPlane} geometry={glowGeo} position={[0, 0, -0.05]}>
+      {/* Warm light waiting behind the door — just behind the leaves, and in
+          front of any wall the door is set against (no z-fighting) */}
+      <mesh ref={glowPlane} geometry={glowGeo} position={[0, 0, 0.015]}>
         <meshBasicMaterial color={glow} toneMapped={false} />
       </mesh>
       {!frameless && (
@@ -95,7 +98,7 @@ export function Door({ position = [0, 0, -13.2], width = 2.6, height = 4.2, glow
       )}
       <group ref={left} position={[-width / 2, 0, 0.05]}>
         <mesh geometry={leafGeo}>
-          <meshStandardMaterial {...wood} color="#8a5a34" roughness={0.8} />
+          <meshStandardMaterial {...wood} color="#8a5a34" roughness={0.8} side={THREE.DoubleSide} />
         </mesh>
         {[0.8, height - 1.2].map((y) => (
           <mesh key={y} position={[width / 4, y, 0.14]}>

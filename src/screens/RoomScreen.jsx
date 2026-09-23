@@ -505,7 +505,9 @@ export default function RoomScreen() {
             </div>
 
             {/* Question + answers */}
-            <motion.div className="w-full landscape:flex-1 flex flex-col gap-3 sm:gap-4 min-w-0" {...contentFadeProps}>
+            {/* Capped width + a little right-hand room, so the card's corner
+                sparkles and the buttons' hover zoom never poke past the screen */}
+            <motion.div className="w-full landscape:flex-1 landscape:max-w-[34rem] flex flex-col gap-3 sm:gap-4 short:gap-1.5 min-w-0 px-1 sm:px-2" {...contentFadeProps}>
               <QuestionCard questionText={question.questionText} ageMode={activeProfile.ageMode} />
 
               {question.visualAid && (

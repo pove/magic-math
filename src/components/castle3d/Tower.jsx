@@ -215,19 +215,32 @@ function Crystal({ y, baseRadius }) {
 }
 
 /**
- * Semicircular stone balcony jutting from the front of the active floor,
- * with a corbel underneath and a balustrade. `y` is the deck surface (where
- * the characters' feet go), `r` the floor's radius.
+ * Stone balcony jutting from the front of the active floor, with a corbel
+ * underneath and a balustrade. `y` is the deck surface (where the
+ * characters' feet go), `r` the floor's radius. Kept narrow enough to
+ * clear the corner turrets on the lower floors.
  */
-const BALCONY_ARC = 2.1 // radians of wall the balcony spans, centred on +Z
-function Balcony({ y, r, material }) {
+const BALCONY_ARC = 1.3 // radians of wall the balcony spans, centred on +Z
+const BALCONY_POSTS = 9
+function Balcony({ y, r }) {
   const outer = r + 2.6
   const posts = useRef()
-  const POSTS = 15
+  // Its own materials: the shared trim stone is scaled for small merlons and
+  // smeared into stripes when stretched round this long arc.
+  const mats = useMemo(() => {
+    const arcLength = outer * BALCONY_ARC
+    const side = stoneTextures(Math.max(1, Math.round(arcLength / 5.1)), 0.8 / 3.4)
+    const corbel = stoneTextures(Math.max(1, Math.round(arcLength / 5.1)), 0.6 / 3.4)
+    return {
+      deck: new THREE.MeshStandardMaterial({ ...side, color: '#bdb5d6', roughness: 1 }),
+      corbel: new THREE.MeshStandardMaterial({ ...corbel, color: '#8f88ab', roughness: 1 }),
+      rail: new THREE.MeshStandardMaterial({ color: '#9a92b8', roughness: 0.85 }),
+    }
+  }, [outer])
   useLayoutEffect(() => {
     const dummy = new THREE.Object3D()
-    for (let i = 0; i < POSTS; i++) {
-      const a = -BALCONY_ARC / 2 + 0.06 + (i / (POSTS - 1)) * (BALCONY_ARC - 0.12)
+    for (let i = 0; i < BALCONY_POSTS; i++) {
+      const a = -BALCONY_ARC / 2 + 0.05 + (i / (BALCONY_POSTS - 1)) * (BALCONY_ARC - 0.1)
       dummy.position.set(Math.sin(a) * (outer - 0.2), y + 0.36, Math.cos(a) * (outer - 0.2))
       dummy.updateMatrix()
       posts.current.setMatrixAt(i, dummy.matrix)
@@ -238,21 +251,21 @@ function Balcony({ y, r, material }) {
   return (
     <group>
       {/* Deck slab */}
-      <mesh position={[0, y - 0.4, 0]} material={material} castShadow receiveShadow>
-        <cylinderGeometry args={[outer, outer, 0.8, 48, 1, false, start, BALCONY_ARC]} />
+      <mesh position={[0, y - 0.4, 0]} material={mats.deck} castShadow receiveShadow>
+        <cylinderGeometry args={[outer, outer, 0.8, 32, 1, false, start, BALCONY_ARC]} />
       </mesh>
       {/* Corbel tapering back into the wall */}
-      <mesh position={[0, y - 1.1, 0]} material={material} castShadow receiveShadow>
-        <cylinderGeometry args={[outer, r - 0.2, 0.6, 48, 1, false, start, BALCONY_ARC]} />
+      <mesh position={[0, y - 1.1, 0]} material={mats.corbel} castShadow receiveShadow>
+        <cylinderGeometry args={[outer, r - 0.2, 0.6, 32, 1, false, start, BALCONY_ARC]} />
       </mesh>
       {/* Balustrade: posts + top rail */}
-      <instancedMesh ref={posts} args={[undefined, material, POSTS]} castShadow>
+      <instancedMesh ref={posts} args={[undefined, mats.rail, BALCONY_POSTS]} castShadow>
         <cylinderGeometry args={[0.07, 0.09, 0.72, 8]} />
       </instancedMesh>
       {/* Torus arc lies in XY from +X; spin it so the arc starts at `start`
           (measured from +Z), then lay it flat */}
-      <mesh position={[0, y + 0.76, 0]} rotation={[-Math.PI / 2, 0, start - Math.PI / 2]} material={material} castShadow>
-        <torusGeometry args={[outer - 0.2, 0.08, 6, 48, BALCONY_ARC]} />
+      <mesh position={[0, y + 0.76, 0]} rotation={[-Math.PI / 2, 0, start - Math.PI / 2]} material={mats.rail} castShadow>
+        <torusGeometry args={[outer - 0.2, 0.08, 6, 32, BALCONY_ARC]} />
       </mesh>
     </group>
   )
@@ -379,15 +392,20 @@ export default function Tower({ levels, floorStates, currentFloor, onSelect, act
       {/* The Director Mago and the player stand out on a balcony of the
           active floor — in front of the wall, not pressed against it */}
       {activeIndex >= 0 && (() => {
+        // Floor 1 sits behind the base wall, right above the gatehouse, so a
+        // balcony there would crash into the portal arch — its characters
+        // wait on the meadow in front of the door instead.
+        const onGround = activeIndex === 0
         const r = floorRadius(activeIndex)
-        const deck = activeIndex * STEP + FLOOR_HEIGHT / 2 + 1.6
-        const standR = r + 1.3
+        const deck = onGround ? 0.65 : activeIndex * STEP + FLOOR_HEIGHT / 2 + 1.6
+        const standR = onGround ? 13 : r + 1.3
+        const spread = onGround ? 0.26 : 0.42
         const spot = (a) => [Math.sin(a) * standR, deck, Math.cos(a) * standR]
         return (
           <>
-            <Balcony y={deck} r={r} material={mats.trim} />
-            <Wizard position={spot(0.42)} />
-            {activeProfile && <PlayerAvatar3D profile={activeProfile} position={spot(-0.42)} />}
+            {!onGround && <Balcony y={deck} r={r} />}
+            <Wizard position={spot(spread)} />
+            {activeProfile && <PlayerAvatar3D profile={activeProfile} position={spot(-spread)} />}
           </>
         )
       })()}

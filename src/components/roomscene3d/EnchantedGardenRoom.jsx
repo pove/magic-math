@@ -179,7 +179,7 @@ function Lawn() {
     if (z > -1.5 && Math.abs(x) < 10) return null // clear lawn where the characters stand, near the camera
     return [x, 0, z]
   }
-  return <GrassField count={Math.round(6000 * q.grass)} place={place} seed={4} />
+  return <GrassField count={6000} density={q.grass} place={place} seed={4} />
 }
 
 export default function EnchantedGardenRoom({ accent = '#60a5fa' }) {

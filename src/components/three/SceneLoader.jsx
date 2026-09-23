@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useProgress, Stats } from '@react-three/drei'
 import { AnimatePresence, motion } from 'framer-motion'
-import { SHOW_FPS, useQuality } from './quality'
+import { SHOW_FPS, useQuality, calibrateOnce } from './quality'
 
 /**
  * Loading for the 3D scenes, so they start smooth instead of stuttering
@@ -12,9 +12,10 @@ import { SHOW_FPS, useQuality } from './quality'
  * (the loaders' shared progress), then compiles every material's shader up
  * front — including objects that are still hidden, like the characters
  * before they walk in — and lets a couple of frames render so textures and
- * the post-processing pipeline get uploaded too. Only then does it call
- * `onReady`. A time cap makes sure a hiccup can never trap the player on
- * the loading screen.
+ * the post-processing pipeline get uploaded too. On the first scene of the
+ * page load it then calibrates the quality tier (quality.jsx), still behind
+ * the curtain. Only then does it call `onReady`. A time cap makes sure a
+ * hiccup can never trap the player on the loading screen.
  *
  * <LoadingScreen> is the HTML curtain shown over the canvas meanwhile.
  */
@@ -29,6 +30,9 @@ export function SceneWarmup({ onReady }) {
   const activeRef = useRef(active)
   activeRef.current = active
   const done = useRef(false)
+  const q = useQuality()
+  const qRef = useRef(q)
+  qRef.current = q
 
   const finish = () => {
     if (done.current) return
@@ -47,8 +51,7 @@ export function SceneWarmup({ onReady }) {
     if (active || done.current) return undefined
     let cancelled = false
     // Give freshly loaded models a moment to mount before compiling
-    const t = setTimeout(async () => {
-      if (cancelled || activeRef.current) return
+    const compileAll = async () => {
       const hidden = []
       scene.traverse((o) => {
         if (!o.visible) {
@@ -63,8 +66,28 @@ export function SceneWarmup({ onReady }) {
         // compiling up front is an optimisation — never block on it
       }
       hidden.forEach((o) => (o.visible = false))
-      // Two more frames so textures and the post stack are on the GPU
-      requestAnimationFrame(() => requestAnimationFrame(() => !cancelled && finish()))
+    }
+    const frames = (n) => new Promise((res) => {
+      const tick = () => (--n <= 0 ? res() : requestAnimationFrame(tick))
+      requestAnimationFrame(tick)
+    })
+    const t = setTimeout(async () => {
+      if (cancelled || activeRef.current) return
+      await compileAll()
+      // A couple of frames so textures and the post stack are on the GPU
+      await frames(2)
+      // First scene of the page load: settle the quality tier while the
+      // loading screen is still up (switching tier recompiles, so do it here)
+      await calibrateOnce(qRef.current.tier, async (tier) => {
+        // If the time cap already lifted the curtain, never switch tier in
+        // front of the player
+        if (done.current) return
+        qRef.current.setTier(tier)
+        await frames(3)
+        await compileAll()
+        await frames(2)
+      })
+      if (!cancelled) finish()
     }, 250)
     return () => {
       cancelled = true

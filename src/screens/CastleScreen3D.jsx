@@ -208,7 +208,7 @@ export default function CastleScreen3D({ viewMode }) {
           flat
           gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
         >
-          <QualityProvider measuring={ready}>
+          <QualityProvider>
             <SceneWarmup onReady={() => setReady(true)} />
             <FpsMeter />
             <Scene

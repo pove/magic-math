@@ -233,7 +233,7 @@ function Grass() {
     if (z > 16 && Math.abs(x) < 8.5) return null
     return [x, terrainHeight(x, z), z]
   }
-  return <GrassField count={Math.round(9000 * q.grass)} place={place} />
+  return <GrassField count={9000} density={q.grass} place={place} />
 }
 
 /** Little bioluminescent flowers dotted through the meadow (bloom candy). */

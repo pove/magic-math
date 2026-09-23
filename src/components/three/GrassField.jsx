@@ -19,9 +19,13 @@ const DEFAULT_GREENS = ['#3a9a62', '#4fb572', '#358a66', '#5cb87a', '#2b8060']
  *
  * `place(random)` returns a blade's [x, y, z] (or null to reject the spot);
  * it's called until `count` blades are placed (with a retry cap).
+ * `density` (0..1) draws only that share of them — blades are scattered at
+ * random, so any leading share covers the whole area evenly. Changing it
+ * (quality tier) doesn't rebuild anything.
  */
-export default function GrassField({ count = 4000, place, colors = DEFAULT_GREENS, height = 0.42, seed = 99 }) {
+export default function GrassField({ count = 4000, density = 1, place, colors = DEFAULT_GREENS, height = 0.42, seed = 99 }) {
   const mesh = useRef()
+  const placedRef = useRef(0)
 
   const { geometry, material } = useMemo(() => {
     const H = height
@@ -81,15 +85,20 @@ export default function GrassField({ count = 4000, place, colors = DEFAULT_GREEN
       mesh.current.setColorAt(placed, palette[Math.floor(r() * palette.length)])
       placed++
     }
-    mesh.current.count = placed
+    placedRef.current = placed
+    mesh.current.count = Math.round(placed * density)
     mesh.current.instanceMatrix.needsUpdate = true
     if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count, seed])
 
+  useLayoutEffect(() => {
+    if (mesh.current && placedRef.current) mesh.current.count = Math.round(placedRef.current * density)
+  }, [density])
+
   useFrame((state) => {
     material.userData.uTime.value = state.clock.elapsedTime
   })
 
-  return <instancedMesh key={count} ref={mesh} args={[geometry, material, count]} receiveShadow frustumCulled={false} />
+  return <instancedMesh ref={mesh} args={[geometry, material, count]} receiveShadow frustumCulled={false} />
 }

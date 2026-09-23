@@ -254,7 +254,7 @@ export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', 
             gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
             onCreated={({ camera, gl }) => { camera.lookAt(durationMs > 0 ? tour.look.getPoint(0) : new THREE.Vector3(...framing.look)); watchGl(gl) }}
           >
-            <QualityProvider measuring={ready}>
+            <QualityProvider>
               <SceneWarmup onReady={handleReady} />
               <FpsMeter />
               <FovSync />

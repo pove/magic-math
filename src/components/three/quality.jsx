@@ -1,17 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 
 /**
- * Adaptive render quality for every 3D scene.
+ * Render quality for every 3D scene, decided once per page load.
  *
- * 1. A first guess from the device (touch, memory, CPU cores and the GPU's
- *    own name) — or the tier this browser settled on last time, which is
- *    remembered.
- * 2. Once the scene has finished loading, drei's PerformanceMonitor watches
- *    the real frame rate and steps the tier down (or back up) until the
- *    device holds a smooth frame rate. The result is saved for next time.
+ * 1. A first guess from the device: touch, memory, CPU cores and the GPU's
+ *    own name.
+ * 2. A short calibration behind the first scene's loading screen, once its
+ *    shaders are compiled (see SceneWarmup): the real frame rate is measured
+ *    and the tier stepped down (or tried one step up) until it holds.
+ * 3. That tier then stays fixed for the rest of the session — no changes
+ *    mid-game — until the page is reloaded (F5).
  *
  *   high    – ambient occlusion, bloom, MSAA, soft shadows, dpr up to 2
  *   medium  – bloom, shadows, dpr up to 1.5, up to 10 point lights
@@ -31,7 +31,6 @@ export const QUALITY = {
   high: { dpr: 2, post: true, ao: true, msaa: 4, shadows: true, shadowMapSize: 2048, grass: 1, particles: 1, lights: Infinity },
 }
 
-const STORE_KEY = 'magic_quality_tier'
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
 const forced = TIERS.includes(params.get('quality')) ? params.get('quality') : null
 export const SHOW_FPS = params.has('fps')
@@ -70,92 +69,118 @@ function detectTier() {
   return 'high'
 }
 
-function initialTier() {
-  if (forced) return forced
-  try {
-    const saved = localStorage.getItem(STORE_KEY)
-    if (TIERS.includes(saved)) return saved
-  } catch {
-    // storage unavailable (private mode…) — fall through to detection
-  }
-  return detectTier()
+// The session's tier, shared by the castle and every room
+let sessionTier = null
+let calibrated = false
+function getSessionTier() {
+  if (!sessionTier) sessionTier = forced || detectTier()
+  return sessionTier
 }
 
-// Shared across scenes so the castle and the rooms agree on the tier
-let currentTier = null
-
-const QualityContext = createContext({ tier: 'medium', ...QUALITY.medium })
+const QualityContext = createContext({ tier: 'medium', ...QUALITY.medium, setTier: () => {}, calibrated: true })
 
 export function useQuality() {
   return useContext(QualityContext)
 }
 
-/**
- * Must be rendered inside <Canvas>. Provides the tier and adapts it.
- * `measuring` — only judge the frame rate once the scene has loaded (shader
- * compilation during loading would otherwise look like a slow device).
- */
-export function QualityProvider({ children, measuring = true }) {
-  const [tier, setTier] = useState(() => currentTier || (currentTier = initialTier()))
-  const value = useMemo(() => ({ tier, ...QUALITY[tier] }), [tier])
-  const measuringRef = useRef(measuring)
-  measuringRef.current = measuring
-
-  const step = (dir, api) => {
-    if (forced || !measuringRef.current) return
-    // A hidden or backgrounded page gets its frames throttled by the browser
-    // (down to ~1 fps): that says nothing about the device, and saving a
-    // tier learned from it would stick for good. Ignore those readings.
-    if (document.visibilityState !== 'visible' || (api && api.fps < 6)) return
-    setTier((t) => {
-      const next = TIERS[Math.min(TIERS.length - 1, Math.max(0, TIERS.indexOf(t) + dir))]
-      currentTier = next
-      try {
-        localStorage.setItem(STORE_KEY, next)
-      } catch {
-        // ignore
-      }
-      return next
-    })
-  }
-
-  return (
-    <PerformanceMonitor bounds={() => [42, 57]} flipflops={4} onDecline={(api) => step(-1, api)} onIncline={(api) => step(1, api)}>
-      <QualityContext.Provider value={value}>
-        <LightBudget budget={value.lights} />
-        <RendererSettings />
-        {children}
-      </QualityContext.Provider>
-    </PerformanceMonitor>
+/** Must be rendered inside <Canvas>. Provides the session's tier. */
+export function QualityProvider({ children }) {
+  const [tier, setTierState] = useState(getSessionTier)
+  const value = useMemo(
+    () => ({
+      tier,
+      ...QUALITY[tier],
+      setTier: (t) => {
+        sessionTier = t
+        setTierState(t)
+      },
+    }),
+    [tier]
   )
+  return (
+    <QualityContext.Provider value={value}>
+      <LightBudget budget={value.lights} />
+      <RendererSettings />
+      {children}
+    </QualityContext.Provider>
+  )
+}
+
+const nextFrame = () => new Promise((res) => requestAnimationFrame(() => res()))
+
+/** Average frame rate over `ms`, ignoring the first few frames. */
+async function measureFps(ms = 1400) {
+  for (let i = 0; i < 6; i++) await nextFrame()
+  const start = performance.now()
+  let frames = 0
+  while (performance.now() - start < ms) {
+    await nextFrame()
+    frames++
+  }
+  return (frames * 1000) / (performance.now() - start)
+}
+
+/**
+ * One-off calibration, run behind the first scene's loading screen after its
+ * shaders are compiled. `apply(tier)` switches tier and resolves once the
+ * scene is ready to be measured again. Later scenes skip it.
+ */
+export async function calibrateOnce(currentTier, apply) {
+  if (calibrated || forced) {
+    calibrated = true
+    return
+  }
+  calibrated = true
+  // A hidden/background page is throttled by the browser — its frame rate
+  // says nothing about the device; keep the detected tier then.
+  if (document.visibilityState !== 'visible') return
+  let tier = currentTier
+  let fps = await measureFps()
+  if (fps < 6) return
+  // Too slow: step down until it holds (at most twice)
+  for (let i = 0; i < 2 && fps < 40 && TIERS.indexOf(tier) > 0; i++) {
+    tier = TIERS[TIERS.indexOf(tier) - 1]
+    await apply(tier)
+    fps = await measureFps()
+  }
+  // Plenty of headroom: try one step up, and keep it only if it still holds
+  if (tier === currentTier && fps >= 56 && TIERS.indexOf(tier) < TIERS.length - 1) {
+    const up = TIERS[TIERS.indexOf(tier) + 1]
+    await apply(up)
+    const upFps = await measureFps()
+    if (upFps < 48) await apply(tier)
+  }
 }
 
 /**
  * Keeps at most `budget` point/spot lights switched on — every extra light
  * makes every lit material in view more expensive. Lights marked
  * `userData.essential` always stay on; the rest are ranked by how much they
- * can light near the camera. Re-checks now and then, since lights come and
- * go (portal, active floor…).
+ * can light near the camera.
+ *
+ * Deliberately sticky, so lights don't pop on and off as the camera moves:
+ * it re-checks every couple of seconds and only swaps a lit light for an
+ * unlit one that scores clearly (60 %) higher. The number of lit lights stays
+ * constant, so a swap never forces the shaders to recompile.
  */
 function LightBudget({ budget }) {
   const scene = useThree((s) => s.scene)
   const camera = useThree((s) => s.camera)
-  const last = useRef(-1)
+  const last = useRef(-10)
   const tmp = useMemo(() => new THREE.Vector3(), [])
   useFrame((state) => {
-    if (state.clock.elapsedTime - last.current < 1) return
+    if (state.clock.elapsedTime - last.current < 2) return
     last.current = state.clock.elapsedTime
     const lights = []
     scene.traverse((o) => {
       if (o.isPointLight || o.isSpotLight) lights.push(o)
     })
-    if (!Number.isFinite(budget)) {
-      lights.forEach((l) => {
-        if (l.userData.budgetOff) {
-          l.visible = true
-          l.userData.budgetOff = false
-        }
-      })
+    const setOn = (l, on) => {
+      l.visible = on
+      l.userData.budgetOff = !on
+    }
+    if (!Number.isFinite(budget) || lights.length <= budget) {
+      lights.forEach((l) => l.userData.budgetOff && setOn(l, true))
       return
     }
     const score = (l) => {
@@ -163,17 +188,26 @@ function LightBudget({ budget }) {
       const reach = l.distance || 20
       return (l.userData.essential ? 1e9 : 0) + (Math.max(l.intensity, 0.1) * reach) / (1 + tmp.distanceTo(camera.position))
     }
-    lights.sort((a, b) => score(b) - score(a))
-    lights.forEach((l, i) => {
-      const on = i < budget
-      if (!on && (l.visible || !l.userData.budgetOff)) {
-        l.visible = false
-        l.userData.budgetOff = true
-      } else if (on && l.userData.budgetOff) {
-        l.visible = true
-        l.userData.budgetOff = false
-      }
-    })
+    const scored = lights.map((l) => ({ l, s: score(l) }))
+    let on = scored.filter((x) => !x.l.userData.budgetOff)
+    let off = scored.filter((x) => x.l.userData.budgetOff)
+    // Trim or top up to exactly the budget (first run, tier change, new lights)
+    on.sort((x, y) => y.s - x.s)
+    off.sort((x, y) => y.s - x.s)
+    while (on.length > budget) off.push(on.pop())
+    while (on.length < budget && off.length) on.push(off.shift())
+    // Sticky swaps: only when an unlit light clearly beats the weakest lit one
+    on.sort((x, y) => y.s - x.s)
+    off.sort((x, y) => y.s - x.s)
+    while (off.length && on.length && off[0].s > on[on.length - 1].s * 1.6) {
+      const weakest = on.pop()
+      on.push(off.shift())
+      off.push(weakest)
+      on.sort((x, y) => y.s - x.s)
+      off.sort((x, y) => y.s - x.s)
+    }
+    on.forEach((x) => setOn(x.l, true))
+    off.forEach((x) => setOn(x.l, false))
   })
   return null
 }

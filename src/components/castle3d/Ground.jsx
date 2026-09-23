@@ -440,7 +440,10 @@ function PathStones() {
   useLayoutEffect(() => {
     const dummy = new THREE.Object3D()
     stones.forEach((s, i) => {
-      dummy.position.set(s.x, terrainHeight(s.x, s.z) + 0.05, s.z)
+      // Neighbouring stones overlap; at one shared height their tops were
+      // coplanar and z-fought (shimmering while the camera moved), so
+      // stagger them a little in height.
+      dummy.position.set(s.x, terrainHeight(s.x, s.z) + 0.05 + (i % 4) * 0.025, s.z)
       dummy.rotation.set(0, s.rot, 0)
       dummy.scale.set(s.s, 1, s.s * 0.8)
       dummy.updateMatrix()

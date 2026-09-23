@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useQuality } from './quality'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
@@ -71,6 +72,10 @@ export default function GlowParticles({
   position,
 }) {
   const { gl } = useThree()
+  // Fewer particles on weaker devices — drawn from the same buffer, so a
+  // quality change doesn't rebuild it
+  const q = useQuality()
+  const drawn = Math.max(8, Math.round(count * q.particles))
   const size2 = useThree((s) => s.size)
 
   const geometry = useMemo(() => {
@@ -137,6 +142,8 @@ export default function GlowParticles({
     // particles keep their world size across screens and pixel ratios.
     material.uniforms.uScale.value = size2.height * gl.getPixelRatio() * 0.9
   })
+
+  geometry.setDrawRange(0, drawn)
 
   return <points geometry={geometry} material={material} position={position} frustumCulled={false} />
 }

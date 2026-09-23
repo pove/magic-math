@@ -1,5 +1,3 @@
-import { useEffect } from 'react'
-import { useThree } from '@react-three/fiber'
 import { EffectComposer, Bloom, N8AO, Vignette, ToneMapping, SMAA } from '@react-three/postprocessing'
 import { ToneMappingMode } from 'postprocessing'
 import { useQuality } from './quality'
@@ -12,15 +10,13 @@ import { useQuality } from './quality'
  * moon — survives to the Bloom pass and glows. Tone mapping happens last,
  * here, so the bloom rolls off naturally instead of clipping.
  *
- * Also applies the quality tier's pixel ratio.
+ * On the low quality tiers the whole stack is skipped (it's the single most
+ * expensive thing on a weak GPU) and the renderer tone-maps directly — see
+ * RendererSettings in quality.jsx.
  */
 export default function PostFX({ bloom = 0.9, bloomThreshold = 0.95, aoRadius = 2.5, aoIntensity = 2.2, vignette = 0.55 }) {
   const q = useQuality()
-  const setDpr = useThree((s) => s.setDpr)
-
-  useEffect(() => {
-    setDpr(Math.min(window.devicePixelRatio || 1, q.dpr))
-  }, [q.dpr, setDpr])
+  if (!q.post) return null
 
   return (
     <EffectComposer multisampling={q.msaa} disableNormalPass>

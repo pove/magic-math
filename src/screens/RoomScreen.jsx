@@ -6,7 +6,7 @@ import { generateQuestion, getMaxUniqueQuestions } from '../engine/mathEngine'
 import { getNormalRoomCount } from '../engine/floorConfig'
 import { hasRoomScene3D } from '../engine/roomScenes3d'
 import { DEFAULT_LIVES } from '../engine/gameConfig'
-import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE } from '../engine/roomAnimations'
+import { FLOOR_INTRO, ROOM_INTRO, ROOM_LEAVE, FLOOR_INTRO_3D, ROOM_INTRO_3D, ROOM_LEAVE_3D } from '../engine/roomAnimations'
 import { SKINS } from '../data/skins'
 import useViewport from '../hooks/useViewport'
 import useCastleViewMode from '../hooks/useCastleViewMode'
@@ -102,14 +102,19 @@ export default function RoomScreen() {
   // First room of a floor gets the big "arriving at a new floor" flourish;
   // any other room gets a quicker "walking into the next room" settle.
   const isNewFloor = room === 1
-  const introCfg = isNewFloor ? FLOOR_INTRO : ROOM_INTRO
+  // 3D rooms run their own, longer choreography (camera tour, door, run-in)
+  const introCfg = use3DRoom ? (isNewFloor ? FLOOR_INTRO_3D : ROOM_INTRO_3D) : isNewFloor ? FLOOR_INTRO : ROOM_INTRO
+  const leaveCfg = use3DRoom ? ROOM_LEAVE_3D : ROOM_LEAVE
   const titleTotalMs = introCfg.titleFadeMs * 2 + introCfg.titleHoldMs
   // Sequential beats: title fades out → character flies in → question fades in.
-  const charDelayMs = introCfg.titleDelayMs + titleTotalMs
+  const charDelayMs = introCfg.charDelayMs ?? introCfg.titleDelayMs + titleTotalMs
   const contentDelayMs = charDelayMs + introCfg.charDurationMs
+  // A 3D room first shows a loading screen; the whole choreography (title,
+  // character, question) starts counting only once it reports ready.
+  const [sceneReady, setSceneReady] = useState(!use3DRoom)
   const contentFadeProps = {
     initial: { opacity: 0 },
-    animate: { opacity: 1 },
+    animate: { opacity: sceneReady ? 1 : 0 },
     transition: { duration: introCfg.contentFadeMs / 1000, delay: contentDelayMs / 1000 },
   }
 
@@ -137,15 +142,22 @@ export default function RoomScreen() {
   // leaving: the character is flying off happily before we navigate away
   const [entering, setEntering] = useState(true)
   const [leaving, setLeaving] = useState(false)
+  // In a 3D room the characters live inside the scene: this slot is the
+  // empty box the layout keeps for them, which the scene frames them onto.
+  const actorSlotRef = useRef(null)
+  const [actorPhase, setActorPhase] = useState('waiting')
 
   // Room entrance choreography: play the arrival chime when the "Entrando
   // en..." title pops in, and re-enable input once the question has faded in.
   useEffect(() => {
+    if (!sceneReady) return undefined
     const titleTimer = setTimeout(() => sfx.magic(), introCfg.titleDelayMs)
     const readyTimer = setTimeout(() => setEntering(false), contentDelayMs + introCfg.contentFadeMs)
-    return () => { clearTimeout(titleTimer); clearTimeout(readyTimer) }
+    const walkTimer = setTimeout(() => setActorPhase('entering'), charDelayMs)
+    const standTimer = setTimeout(() => setActorPhase((p) => (p === 'entering' ? 'playing' : p)), charDelayMs + introCfg.charDurationMs)
+    return () => { clearTimeout(titleTimer); clearTimeout(readyTimer); clearTimeout(walkTimer); clearTimeout(standTimer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [sceneReady])
 
   const nextQuestion = useCallback(() => {
     const q = generateNewQuestion(activeProfile?.ageMode, floor, room, activeProfile?.currentMode, askedQuestionsRef.current)
@@ -236,9 +248,10 @@ export default function RoomScreen() {
   // bar) is visible for a beat before the screen actually changes.
   const leaveThen = useCallback((action) => {
     setLeaving(true)
+    setActorPhase('leaving')
     sfx.whoosh()
     setParticles({ type: 'magic', key: Date.now() + 1 })
-    setTimeout(action, ROOM_LEAVE.navigateDelayMs)
+    setTimeout(action, leaveCfg.navigateDelayMs)
   }, [])
 
   const advanceAndGo = useCallback((path, state) => {
@@ -319,12 +332,30 @@ export default function RoomScreen() {
   return (
     <div className="h-dvh w-full overflow-hidden">
       <Suspense fallback={<div className="fixed inset-0 bg-[#1a0533]" />}>
-      <SceneComponent floor={floor} room={room} introLevel={isNewFloor ? 'floor' : 'room'}>
+      <SceneComponent
+        floor={floor}
+        room={room}
+        introLevel={isNewFloor ? 'floor' : 'room'}
+        {...(use3DRoom && {
+          onReady: () => setSceneReady(true),
+          actors: {
+            anchorRef: actorSlotRef,
+            profile: activeProfile,
+            phase: actorPhase,
+            enterMs: introCfg.charDurationMs,
+            leaveMs: leaveCfg.charDurationMs,
+            action: animState,
+            questionKey: `${answered}:${question.questionText}`,
+            wizard: true,
+          },
+        })}
+      >
         {/* "Entrando en..." title card, then it fades out before the question shows */}
         <motion.div
-          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6"
+          // In 3D the title sits near the top so the camera tour stays visible
+          className={`pointer-events-none absolute inset-0 z-20 flex justify-center px-6 ${use3DRoom ? 'items-start pt-[9vh]' : 'items-center'}`}
           initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 1, 0] }}
+          animate={{ opacity: sceneReady ? [0, 1, 1, 0] : 0 }}
           transition={{
             duration: titleTotalMs / 1000,
             delay: introCfg.titleDelayMs / 1000,
@@ -417,7 +448,7 @@ export default function RoomScreen() {
                 }
                 transition={
                   leaving
-                    ? { duration: ROOM_LEAVE.charDurationMs / 1000, ease: 'easeIn' }
+                    ? { duration: leaveCfg.charDurationMs / 1000, ease: 'easeIn' }
                     : is3D
                       // The box itself just needs to appear — the walk/grow
                       // motion happens inside it (PlayerAvatar3D's walkIn
@@ -431,7 +462,11 @@ export default function RoomScreen() {
                         }
                 }
               >
-                {is3D ? (
+                {use3DRoom ? (
+                  // Empty on purpose: the player and the Mago are drawn by
+                  // the 3D room itself, framed onto this box.
+                  <div ref={actorSlotRef} style={{ width: Math.round(character3dSize * 1.5), height: character3dSize, maxWidth: 'calc(100vw - 24px)' }} />
+                ) : is3D ? (
                   <Suspense fallback={<div style={{ width: character3dSize, height: character3dSize }} />}>
                     <CharacterStage3D
                       profile={activeProfile}
@@ -451,7 +486,7 @@ export default function RoomScreen() {
                 )}
               </motion.div>
 
-              {isBoss && (
+              {isBoss && !use3DRoom && (
                 <motion.div
                   initial={{ opacity: 0, x: 100, scale: 0.7, rotate: 8 }}
                   animate={
@@ -461,7 +496,7 @@ export default function RoomScreen() {
                   }
                   transition={
                     leaving
-                      ? { duration: ROOM_LEAVE.charDurationMs / 1000, ease: 'easeIn' }
+                      ? { duration: leaveCfg.charDurationMs / 1000, ease: 'easeIn' }
                       : {
                           duration: introCfg.charDurationMs / 1000,
                           delay: charDelayMs / 1000,
@@ -475,7 +510,9 @@ export default function RoomScreen() {
             </div>
 
             {/* Question + answers */}
-            <motion.div className="w-full landscape:flex-1 flex flex-col gap-3 sm:gap-4 min-w-0" {...contentFadeProps}>
+            {/* Capped width + a little right-hand room, so the card's corner
+                sparkles and the buttons' hover zoom never poke past the screen */}
+            <motion.div className="w-full landscape:flex-1 landscape:max-w-[34rem] flex flex-col gap-3 sm:gap-4 short:gap-1.5 min-w-0 px-1 sm:px-2" {...contentFadeProps}>
               <QuestionCard questionText={question.questionText} ageMode={activeProfile.ageMode} />
 
               {question.visualAid && (

@@ -64,9 +64,16 @@ export function useCanvasWatchdog() {
     () => () => {
       const gl = glRef.current
       const el = gl == null ? void 0 : gl.domElement
-      if (el && lostHandlerRef.current) el.removeEventListener('webglcontextlost', lostHandlerRef.current)
-      const ext = gl?.getContext?.()?.getExtension?.('WEBGL_lose_context')
-      ext?.loseContext()
+      // React's StrictMode (dev) runs a fake unmount/remount that keeps the
+      // very same canvas and renderer alive — freeing the context then left
+      // the remounted scene with a dead one. Only free it once the canvas has
+      // really left the page.
+      setTimeout(() => {
+        if (el?.isConnected) return
+        if (el && lostHandlerRef.current) el.removeEventListener('webglcontextlost', lostHandlerRef.current)
+        const ext = gl?.getContext?.()?.getExtension?.('WEBGL_lose_context')
+        ext?.loseContext()
+      }, 0)
     },
     []
   )

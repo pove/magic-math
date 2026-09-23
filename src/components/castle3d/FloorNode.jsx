@@ -4,6 +4,7 @@ import { Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { stoneTextures, runeBandTexture } from '../three/textures'
 import { windowGlassGeometry, windowFrameGeometry } from './windowGeometry'
+import { Flame } from '../roomscene3d/kit'
 
 const FLOOR_HEIGHT = 6
 // Crenellations top out at FLOOR_HEIGHT/2 + 1.35 (=3.85) above a floor's
@@ -15,6 +16,58 @@ const SEGMENTS = 48
 const WINDOWS = 8
 const MERLONS = 14
 const WINDOW_Y = 0.2
+// The roof of the top floor is an open terrace; its paving sits this far
+// above the floor's centre (on top of the corbelled ledge).
+export const TERRACE_DECK = FLOOR_HEIGHT / 2 + 0.8
+
+/**
+ * Open-air terrace crowning the keep: stone paving inside the battlements,
+ * a slowly turning circle of glowing math runes where the crystal stands,
+ * and braziers burning at the parapet.
+ */
+function TerraceDeck({ radius, status }) {
+  const runes = useRef()
+  const mats = useMemo(() => {
+    const paving = stoneTextures(4, 4)
+    return { paving: new THREE.MeshStandardMaterial({ ...paving, color: '#c9c2df', roughness: 1 }) }
+  }, [])
+  // Ring with polar UVs so the rune strip wraps round it
+  const runeRing = useMemo(() => {
+    const g = new THREE.RingGeometry(2.1, 2.6, 96, 1)
+    const p = g.attributes.position
+    const uv = g.attributes.uv
+    for (let i = 0; i < p.count; i++) uv.setXY(i, (i % 97) / 96, (Math.hypot(p.getX(i), p.getY(i)) - 2.1) / 0.5)
+    return g
+  }, [])
+  const runeTex = useMemo(() => runeBandTexture(4), [])
+  const lit = status !== 'locked'
+  useFrame((state) => {
+    if (runes.current) runes.current.rotation.z = state.clock.elapsedTime * 0.15
+  })
+  const braziers = [0.75, -0.75, Math.PI - 0.75, Math.PI + 0.75]
+  return (
+    <group position={[0, TERRACE_DECK, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} material={mats.paving} receiveShadow>
+        <circleGeometry args={[radius, SEGMENTS]} />
+      </mesh>
+      <mesh ref={runes} geometry={runeRing} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
+        <meshBasicMaterial map={runeTex} color={lit ? [2.4, 1.7, 0.5] : [0.4, 0.35, 0.6]} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </mesh>
+      {braziers.map((a) => (
+        <group key={a} position={[Math.sin(a) * (radius - 0.45), 0, Math.cos(a) * (radius - 0.45)]}>
+          <mesh position={[0, 0.45, 0]} material={mats.paving} castShadow>
+            <cylinderGeometry args={[0.16, 0.24, 0.9, 10]} />
+          </mesh>
+          <mesh position={[0, 0.98, 0]}>
+            <cylinderGeometry args={[0.36, 0.2, 0.26, 12]} />
+            <meshStandardMaterial color="#3b2f1f" metalness={0.7} roughness={0.4} />
+          </mesh>
+          {lit && <Flame position={[0, 1.08, 0]} radius={0.16} height={0.55} particleCount={30} />}
+        </group>
+      ))}
+    </group>
+  )
+}
 
 /** Group that rotates to always face the camera and slides outward so
  *  labels float just outside the tower wall instead of inside it. */
@@ -63,7 +116,7 @@ const LOOK = {
  * status: 'locked' | 'done' | 'active'
  * r: bottom radius of this floor (the keep tapers as it goes up)
  */
-export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
+export default function FloorNode({ level, index, status, onSelect, r = 7.8, showLabels = true, terrace = false }) {
   const group = useRef()
   const ring = useRef()
   const merlons = useRef()
@@ -181,6 +234,8 @@ export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
         <boxGeometry args={[0.9, 0.6, 0.5]} />
       </instancedMesh>
 
+      {terrace && <TerraceDeck radius={rTop + 0.5} status={status} />}
+
       {/* Arched windows: glowing glass set into protruding stone frames */}
       <instancedMesh ref={frames} args={[windowFrameGeometry(), mats.trim, WINDOWS]} castShadow receiveShadow />
       <instancedMesh ref={glass} args={[windowGlassGeometry(), mats.glass, WINDOWS]} />
@@ -201,6 +256,8 @@ export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
           never floats into the gap toward the floor above. The badge glyph
           sits pinned beside the number so the status is never ambiguous:
           ✓ done, 🔒 locked, ★ the floor you're currently on. */}
+      {showLabels && (
+      <>
       <Billboard position={[0, 2, 0]} radius={rTop + 1.2}>
         <Text
           position={[-0.55, 0, 0]}
@@ -237,6 +294,8 @@ export default function FloorNode({ level, index, status, onSelect, r = 7.8 }) {
           {level.name}
         </Text>
       </Billboard>
+      </>
+      )}
     </group>
   )
 }

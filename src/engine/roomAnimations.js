@@ -68,8 +68,9 @@ export const ROOM_INTRO_3D = {
   contentFadeMs: 500,
 }
 
-// Leaving a 3D room: the Mago opens a portal and the player runs into it.
+// Leaving a 3D room: the Mago casts a portal open, the player runs to it,
+// is drawn in, and it collapses (see RoomActors for the beats).
 export const ROOM_LEAVE_3D = {
-  charDurationMs: 1500,
-  navigateDelayMs: 1800,
+  charDurationMs: 2200,
+  navigateDelayMs: 2450,
 }

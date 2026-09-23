@@ -135,8 +135,12 @@ const TIPS = [
 export function LoadingScreen({ visible }) {
   const models = useProgress((s) => s.progress)
   const [tip] = useState(() => TIPS[Math.floor(Math.random() * TIPS.length)])
-  // Models are most of the wait; the last stretch is shader warm-up
-  const pct = Math.round(Math.min(100, models * 0.85 + (visible ? 0 : 15)))
+  // Models are most of the wait; the last stretch is shader warm-up. The
+  // loaders' progress restarts whenever a new file starts downloading, so
+  // only ever move the bar forwards.
+  const maxPct = useRef(0)
+  maxPct.current = Math.max(maxPct.current, Math.round(Math.min(100, models * 0.85 + (visible ? 0 : 15))))
+  const pct = maxPct.current
   return (
     <AnimatePresence>
       {visible && (

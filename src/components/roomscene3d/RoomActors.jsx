@@ -6,7 +6,7 @@ import Wizard from '../castle3d/Wizard'
 import { getCharacter3dById, getDefaultCharacter3dId } from '../../data/characters3d'
 import { getPetById } from '../../data/pets'
 import { getMonsterById } from '../../data/monsters'
-import { glowTexture } from '../three/textures'
+import { glowTexture, runeBandTexture } from '../three/textures'
 
 /**
  * The player's character (+ companion) and the Director Mago, standing
@@ -43,7 +43,8 @@ const WIZARD_SCALE = 0.88
 // no door to come in through
 const ENTER_FROM = [-3.2, 0, -2.4]
 // The exit portal the Mago opens, relative to the stage spot
-const PORTAL_OFFSET = [-1.9, 0, -2.4]
+// Behind the group, pulled toward the middle of the room so it's always in view
+const portalSpot = (stage) => [stage[0] * 0.45 + 1.1, 0, stage[2] - 3.6]
 
 function getCompanion(activeCompanion) {
   if (!activeCompanion) return null
@@ -181,56 +182,168 @@ const portalVertex = /* glsl */ `
   varying vec2 vUv;
   void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
 `
+// A vortex with depth: spiral arms flowing inwards (log-spiral), a dark
+// tunnel at the centre with stars falling into it, and a bright rim.
 const portalFragment = /* glsl */ `
   uniform float uTime;
   uniform float uOpen;
   varying vec2 vUv;
+  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   void main() {
     vec2 c = vUv * 2.0 - 1.0;
     float r = length(c);
     float a = atan(c.y, c.x);
-    float swirl = sin(a * 5.0 + r * 14.0 - uTime * 7.0) * 0.5 + 0.5;
-    vec3 col = mix(vec3(0.45, 0.2, 1.4), vec3(0.2, 1.3, 1.6), swirl);
-    col += vec3(1.8, 1.5, 2.2) * smoothstep(0.35, 0.0, r); // bright core
-    float edge = smoothstep(1.0, 0.82, r);
-    gl_FragColor = vec4(col * (0.6 + swirl * 0.6), edge * uOpen);
+    float lr = log(max(r, 0.002));
+    float spiral = sin(a * 3.0 - lr * 5.5 + uTime * 5.0);
+    float arms = smoothstep(0.05, 1.0, spiral);
+    float tunnel = smoothstep(0.05, 0.75, r);
+    vec3 deep = vec3(0.03, 0.0, 0.1);
+    vec3 armCol = mix(vec3(1.1, 0.35, 2.2), vec3(0.25, 1.5, 2.0), smoothstep(0.25, 0.95, r));
+    vec3 col = mix(deep, armCol, arms * tunnel * 0.85);
+    // Stars streaming down the tunnel
+    vec2 sc = vec2(a * 5.0, lr * 4.0 + uTime * 3.0);
+    vec2 cell = floor(sc);
+    vec2 fc = fract(sc) - 0.5;
+    float star = step(0.82, hash(cell)) * smoothstep(0.14, 0.0, length(fc));
+    col += vec3(2.2, 2.0, 2.6) * star * (1.0 - tunnel * 0.5);
+    col += vec3(1.8, 1.3, 3.0) * exp(-pow((r - 0.95) * 13.0, 2.0)) * 1.4; // rim
+    float alpha = smoothstep(1.02, 0.9, r);
+    gl_FragColor = vec4(col, alpha * min(1.0, uOpen * 1.5));
   }
 `
 
-/** Swirling magic portal the Mago opens to send the player on to the next
- *  room. Opens/closes with `openRef.current` (0..1). */
+// Sparks spiralling in from around the portal and vanishing at its centre
+const suckVertex = /* glsl */ `
+  uniform float uTime;
+  uniform float uOpen;
+  attribute vec2 aSeed;
+  varying float vAlpha;
+  void main() {
+    float ph = fract(uTime * (0.35 + aSeed.x * 0.4) + aSeed.y);
+    float r = mix(2.3, 0.1, ph * ph);
+    float a = aSeed.y * 6.2832 + ph * 5.0;
+    vec3 p = vec3(cos(a) * r * 0.78, sin(a) * r, 0.08);
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = (1.0 - ph * 0.7) * 160.0 / -mv.z;
+    vAlpha = uOpen * smoothstep(0.0, 0.15, ph) * (1.0 - smoothstep(0.85, 1.0, ph));
+  }
+`
+const suckFragment = /* glsl */ `
+  varying float vAlpha;
+  void main() {
+    float d = length(gl_PointCoord - 0.5) * 2.0;
+    float g = smoothstep(1.0, 0.0, d);
+    gl_FragColor = vec4(vec3(1.6, 1.4, 2.6) * g, g * vAlpha);
+  }
+`
+
+/**
+ * The exit portal the Mago opens to send the player on to the next room.
+ * It tears open as a vertical slit of light, widens into an oval vortex —
+ * spiral arms pouring into a starry tunnel, a ring of math runes turning
+ * round the rim, sparks being drawn in — then collapses to a point.
+ * Driven by `openRef.current` (0 closed … 1 open).
+ */
 function Portal({ position, openRef }) {
   const group = useRef()
-  const mat = useMemo(
-    () => new THREE.ShaderMaterial({ vertexShader: portalVertex, fragmentShader: portalFragment, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { uTime: { value: 0 }, uOpen: { value: 0 } } }),
-    []
-  )
   const ring = useRef()
   const light = useRef()
+  const floorGlow = useRef()
+  const vortex = useMemo(
+    () => new THREE.ShaderMaterial({ vertexShader: portalVertex, fragmentShader: portalFragment, transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { uTime: { value: 0 }, uOpen: { value: 0 } } }),
+    []
+  )
+  const suck = useMemo(
+    () => new THREE.ShaderMaterial({ vertexShader: suckVertex, fragmentShader: suckFragment, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uTime: { value: 0 }, uOpen: { value: 0 } } }),
+    []
+  )
+  const sparks = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    const n = 70
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3))
+    const seeds = new Float32Array(n * 2)
+    for (let i = 0; i < n * 2; i++) seeds[i] = Math.random()
+    g.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 2))
+    return g
+  }, [])
+  // Ring with polar UVs so the rune strip wraps round the rim (RingGeometry
+  // lays out 97 vertices per ring here, the seam vertex duplicated)
+  const runeRing = useMemo(() => {
+    const g = new THREE.RingGeometry(1.02, 1.2, 96, 1)
+    const p = g.attributes.position
+    const uv = g.attributes.uv
+    for (let i = 0; i < p.count; i++) uv.setXY(i, (i % 97) / 96, (Math.hypot(p.getX(i), p.getY(i)) - 1.02) / 0.18)
+    return g
+  }, [])
+  const runes = useMemo(() => runeBandTexture(3), [])
+  const glow = glowTexture()
+
   useFrame((state) => {
     const o = openRef.current
-    mat.uniforms.uTime.value = state.clock.elapsedTime
-    mat.uniforms.uOpen.value = o
+    const t = state.clock.elapsedTime
+    vortex.uniforms.uTime.value = t
+    vortex.uniforms.uOpen.value = o
+    suck.uniforms.uTime.value = t
+    suck.uniforms.uOpen.value = o
     if (group.current) {
-      group.current.visible = o > 0.01
-      group.current.scale.setScalar(Math.max(0.001, o))
+      group.current.visible = o > 0.005
+      // Tear open as a tall slit first, then widen into the oval
+      const h = THREE.MathUtils.smoothstep(o, 0, 0.35)
+      const w = Math.max(0.03, THREE.MathUtils.smoothstep(o, 0.2, 1))
+      group.current.scale.set(w * 1.05, h * 1.35, 1)
     }
-    if (ring.current) ring.current.rotation.z = state.clock.elapsedTime * 1.5
-    if (light.current) light.current.intensity = o * 10
+    if (ring.current) ring.current.rotation.z = -t * 0.8
+    if (light.current) light.current.intensity = o * 12
+    if (floorGlow.current) floorGlow.current.material.opacity = o * 0.5
+  })
+
+  return (
+    <group position={position}>
+      <group ref={group} position={[0, 1.45, 0]} visible={false}>
+        <mesh material={vortex}>
+          <circleGeometry args={[1, 64]} />
+        </mesh>
+        <mesh ref={ring} geometry={runeRing} position={[0, 0, 0.02]}>
+          <meshBasicMaterial map={runes} color={[2.2, 1.6, 3]} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} side={THREE.DoubleSide} />
+        </mesh>
+        <points geometry={sparks} material={suck} frustumCulled={false} />
+      </group>
+      {/* Its light pooling on the floor */}
+      <mesh ref={floorGlow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0.2]} scale={[3.2, 2.2, 1]}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial map={glow} color="#a78bfa" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <pointLight ref={light} position={[0, 1.4, 0.6]} color="#a78bfa" intensity={0} distance={8} />
+    </group>
+  )
+}
+
+/** A crackling beam from the Mago's staff to the portal while he opens it. */
+function CastBeam({ from, to, visibleRef }) {
+  const mesh = useRef()
+  const { mid, len, quat } = useMemo(() => {
+    const a = new THREE.Vector3(...from)
+    const b = new THREE.Vector3(...to)
+    const d = b.clone().sub(a)
+    return {
+      mid: a.clone().add(b).multiplyScalar(0.5),
+      len: d.length(),
+      quat: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()),
+    }
+  }, [from, to])
+  useFrame((state) => {
+    if (!mesh.current) return
+    const v = visibleRef.current
+    mesh.current.visible = v > 0.01
+    mesh.current.material.opacity = v * (0.7 + Math.sin(state.clock.elapsedTime * 40) * 0.3)
+    mesh.current.scale.set(0.6 + Math.sin(state.clock.elapsedTime * 31) * 0.4, 1, 1)
   })
   return (
-    <group position={[position[0], 1.25, position[2]]}>
-      <group ref={group} rotation={[0, 0.35, 0]} visible={false}>
-        <mesh material={mat}>
-          <circleGeometry args={[1.2, 48]} />
-        </mesh>
-        <mesh ref={ring}>
-          <torusGeometry args={[1.22, 0.06, 8, 48]} />
-          <meshBasicMaterial color={[1.6, 1.1, 3]} toneMapped={false} />
-        </mesh>
-      </group>
-      <pointLight ref={light} color="#a78bfa" intensity={0} distance={7} />
-    </group>
+    <mesh ref={mesh} position={mid} quaternion={quat} visible={false}>
+      <cylinderGeometry args={[0.04, 0.04, len, 6, 1, true]} />
+      <meshBasicMaterial color={[2, 1.6, 3.2]} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+    </mesh>
   )
 }
 
@@ -301,7 +414,10 @@ export default function RoomActors({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionKey])
 
-  const portalAt = useMemo(() => [stage[0] + PORTAL_OFFSET[0], 0, stage[2] + PORTAL_OFFSET[2]], [stage])
+  const portalAt = useMemo(() => portalSpot(stage), [stage])
+  const beamOn = useRef(0)
+  const [collapseKey, setCollapseKey] = useState(0)
+  const collapsed = useRef(false)
   const from = useMemo(
     () => entryFrom || [standAt[0] + ENTER_FROM[0], 0, standAt[2] + ENTER_FROM[2]],
     [entryFrom, standAt]
@@ -335,13 +451,30 @@ export default function RoomActors({
       } else w.scale.setScalar(1)
     }
 
-    // Exit portal: opens as the Mago casts, closes once the player is through
-    const portalTarget = phase === 'leaving' && elapsed < leaveMs - 150 ? 1 : 0
-    portalOpen.current = THREE.MathUtils.damp(portalOpen.current, portalTarget, portalTarget ? 7 : 9, dt)
+    // Exit, as a timeline over leaveMs:
+    //   0.00–0.25  the Mago turns and casts; his beam tears the portal open
+    //   0.22–0.66  the player runs to it
+    //   0.66–0.84  …and is drawn in, shrinking and spinning
+    //   0.84–1.00  the portal collapses to a point in a burst of sparks
+    const f = phase === 'leaving' ? elapsed / leaveMs : 0
+    const sm = THREE.MathUtils.smoothstep
+    portalOpen.current = phase !== 'leaving' ? 0 : f < 0.84 ? sm(f, 0.04, 0.26) : 1 - sm(f, 0.84, 0.97)
+    beamOn.current = phase === 'leaving' ? sm(f, 0.02, 0.08) * (1 - sm(f, 0.24, 0.32)) : 0
+    if (phase === 'leaving' && f > 0.86 && !collapsed.current) {
+      collapsed.current = true
+      setCollapseKey((k) => k + 1)
+    }
+    if (phase !== 'leaving') collapsed.current = false
+    // The Mago turns to face the portal while he opens it
+    if (wizardGroup.current) {
+      const target = phase === 'leaving' ? Math.atan2(portalAt[0] - wizardAt[0], portalAt[2] - wizardAt[2]) + 0.5 : 0
+      wizardGroup.current.rotation.y = THREE.MathUtils.damp(wizardGroup.current.rotation.y, target, 6, dt)
+    }
 
     let x = standAt[0]
     let z = standAt[2]
     let scale = 1
+    let lift = 0
     let face = 0.35 // resting: a 3/4 turn, towards the camera and the Mago
     if (phase === 'waiting') {
       g.visible = false
@@ -362,21 +495,23 @@ export default function RoomActors({
       const dz = 2 * u * (cz - from[2]) + 2 * e * (standAt[2] - cz)
       face = t < 0.9 ? Math.atan2(dx, dz) : 0.35
     } else if (phase === 'leaving') {
-      const runStart = 300
-      const runEnd = leaveMs * 0.72
-      const t = Math.min(1, Math.max(0, (elapsed - runStart) / (runEnd - runStart)))
-      const e = t * t * (3 - 2 * t)
-      x = standAt[0] + (portalAt[0] - standAt[0]) * e
-      z = standAt[2] + (portalAt[2] - standAt[2]) * e
-      if (elapsed > runStart) face = Math.atan2(portalAt[0] - standAt[0], portalAt[2] - standAt[2])
-      // Swallowed by the portal: shrink and spin away
-      const gone = Math.min(1, Math.max(0, (elapsed - runEnd) / (leaveMs - runEnd)))
-      scale = 1 - gone
-      face += gone * 6
+      // Run to just in front of the portal…
+      const front = [portalAt[0], 0, portalAt[2] + 0.5]
+      const run = THREE.MathUtils.smoothstep(f, 0.22, 0.66)
+      x = standAt[0] + (front[0] - standAt[0]) * run
+      z = standAt[2] + (front[2] - standAt[2]) * run
+      if (f > 0.2) face = Math.atan2(front[0] - standAt[0], front[2] - standAt[2])
+      // …then get drawn into its centre, shrinking and spinning
+      const pull = THREE.MathUtils.smoothstep(f, 0.66, 0.84)
+      x += (portalAt[0] - x) * pull
+      z += (portalAt[2] - z) * pull
+      lift = pull * 0.9
+      scale = 1 - pull
+      face += pull * pull * 9
     }
-    g.position.set(x, standAt[1], z)
+    g.position.set(x, standAt[1] + lift, z)
     g.scale.setScalar(Math.max(0.0001, scale))
-    g.rotation.y = phase === 'leaving' && scale < 1 ? face : THREE.MathUtils.damp(g.rotation.y, face, 10, dt)
+    g.rotation.y = phase === 'leaving' && scale < 0.98 ? face : THREE.MathUtils.damp(g.rotation.y, face, 10, dt)
   })
 
   const playerAnim =
@@ -426,6 +561,8 @@ export default function RoomActors({
       )}
       <SparkleBurst position={chest} burstKey={burstKey} />
       <Portal position={portalAt} openRef={portalOpen} />
+      <SparkleBurst position={[portalAt[0], 1.45, portalAt[2]]} burstKey={collapseKey} color="#c4b5fd" count={40} />
+      {wizard && <CastBeam from={[wizardAt[0], 1.45, wizardAt[2]]} to={[portalAt[0], 1.45, portalAt[2]]} visibleRef={beamOn} />}
     </group>
   )
 }

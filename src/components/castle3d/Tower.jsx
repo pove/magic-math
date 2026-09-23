@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import FloorNode, { FLOOR_HEIGHT, FLOOR_GAP } from './FloorNode'
+import FloorNode, { FLOOR_HEIGHT, FLOOR_GAP, TERRACE_DECK } from './FloorNode'
 import Wizard from './Wizard'
 import PlayerAvatar3D from './PlayerAvatar3D'
 import { stoneTextures, shingleTextures, glowTexture } from '../three/textures'
@@ -149,9 +149,10 @@ const beamFragment = /* glsl */ `
   }
 `
 
-/** The magic crystal on top of the keep: spinning gem, orbiting rings and a
- *  pillar of light rising into the sky. */
-function Crystal({ y, baseRadius }) {
+/** The magic crystal standing on the keep's rooftop terrace: carved
+ *  pedestal, floating spinning gem, orbiting rings and a pillar of light
+ *  rising into the sky. `y` is the terrace deck. */
+function Crystal({ y }) {
   const gem = useRef()
   const ringA = useRef()
   const ringB = useRef()
@@ -169,14 +170,15 @@ function Crystal({ y, baseRadius }) {
     []
   )
   const glow = glowTexture()
-  const roofTex = useMemo(() => shingleTextures(4, 2.4), [])
+  const pedestalMat = useMemo(() => new THREE.MeshStandardMaterial({ ...stoneTextures(1, 0.5), color: '#b3aacb', roughness: 1 }), [])
+  const G = y + 4.3 // gem height
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
     beamMat.uniforms.uTime.value = t
     if (gem.current) {
       gem.current.rotation.y = t * 0.6
-      gem.current.position.y = y + 7.6 + Math.sin(t * 1.3) * 0.35
+      gem.current.position.y = G + Math.sin(t * 1.3) * 0.25
     }
     if (ringA.current) ringA.current.rotation.set(Math.PI / 2 + Math.sin(t * 0.4) * 0.3, 0, t * 0.9)
     if (ringB.current) ringB.current.rotation.set(Math.PI / 2 - 0.5, t * 0.5, -t * 0.7)
@@ -184,33 +186,39 @@ function Crystal({ y, baseRadius }) {
 
   return (
     <group>
-      {/* Grand spire roof */}
-      <mesh position={[0, y + 2.5, 0]} castShadow receiveShadow>
-        <coneGeometry args={[baseRadius + 0.6, 6.5, 48, 1, true]} />
-        <meshStandardMaterial {...roofTex} color="#6d3fc4" roughness={1} envMapIntensity={0.4} side={THREE.DoubleSide} />
+      {/* Stepped pedestal with a gold cap */}
+      <mesh position={[0, y + 0.2, 0]} material={pedestalMat} castShadow receiveShadow>
+        <cylinderGeometry args={[1.5, 1.7, 0.4, 32]} />
       </mesh>
-      <mesh ref={gem} position={[0, y + 7.6, 0]} scale={[1, 1.5, 1]}>
-        <octahedronGeometry args={[1.5, 0]} />
+      <mesh position={[0, y + 1.1, 0]} material={pedestalMat} castShadow receiveShadow>
+        <cylinderGeometry args={[0.6, 0.95, 1.5, 24]} />
+      </mesh>
+      <mesh position={[0, y + 1.95, 0]} castShadow>
+        <cylinderGeometry args={[1.0, 0.7, 0.28, 24]} />
+        <meshStandardMaterial color="#d6b04c" metalness={0.85} roughness={0.3} />
+      </mesh>
+      <mesh ref={gem} position={[0, G, 0]} scale={[1, 1.5, 1]}>
+        <octahedronGeometry args={[1.0, 0]} />
         <meshStandardMaterial color="#fde68a" emissive="#fbbf24" emissiveIntensity={3.5} roughness={0.15} metalness={0.3} flatShading />
       </mesh>
-      <sprite position={[0, y + 7.6, 0]} scale={[9, 9, 1]}>
+      <sprite position={[0, G, 0]} scale={[7, 7, 1]}>
         <spriteMaterial map={glow} color="#fbbf24" transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <group position={[0, y + 7.6, 0]}>
+      <group position={[0, G, 0]}>
         <mesh ref={ringA}>
-          <torusGeometry args={[2.6, 0.05, 8, 96]} />
+          <torusGeometry args={[1.9, 0.05, 8, 96]} />
           <meshBasicMaterial color={[2.5, 1.6, 4]} toneMapped={false} />
         </mesh>
         <mesh ref={ringB}>
-          <torusGeometry args={[3.2, 0.04, 8, 96]} />
+          <torusGeometry args={[2.35, 0.04, 8, 96]} />
           <meshBasicMaterial color={[0.6, 2.8, 3]} toneMapped={false} />
         </mesh>
       </group>
       {/* Sky beam */}
-      <mesh position={[0, y + 7.6 + 45, 0]} material={beamMat}>
-        <cylinderGeometry args={[3.5, 0.9, 90, 32, 1, true]} />
+      <mesh position={[0, G + 45, 0]} material={beamMat}>
+        <cylinderGeometry args={[3.5, 0.7, 90, 32, 1, true]} />
       </mesh>
-      <pointLight position={[0, y + 8, 0]} color="#fbbf24" intensity={60} distance={40} />
+      <pointLight position={[0, G, 0]} color="#fbbf24" intensity={40} distance={30} />
     </group>
   )
 }
@@ -333,14 +341,14 @@ function Entrance({ trimMat, openRef }) {
  */
 export default function Tower({ levels, floorStates, currentFloor, onSelect, activeProfile, showLabels = true, entranceOpenRef }) {
   const topY = levels.length * STEP
+  const lastIndex = levels.length - 1
+  // The top floor's roof is an open terrace — the crystal stands on it
+  const deckY = lastIndex * STEP + TERRACE_DECK
   const activeIndex = levels.findIndex((l) => l.floor === currentFloor)
   // Flanking turrets read as turrets only if they're clearly shorter (and
   // thicker) than the central keep — a full-height thin cylinder looks like
   // a spike, not a tower. Cap them well below the keep's own height.
   const turretHeight = Math.min(topY * 0.42, 28)
-  // Radius of the topmost floor. Gentle taper, clamped so it never goes
-  // non-positive (a negative cylinder radius renders inside-out in three.js).
-  const topRadius = floorRadius(levels.length - 1)
 
   const mats = useMemo(() => {
     const turret = stoneTextures(3, turretHeight / 3.4)
@@ -365,6 +373,7 @@ export default function Tower({ levels, floorStates, currentFloor, onSelect, act
           onSelect={onSelect}
           r={floorRadius(i)}
           showLabels={showLabels}
+          terrace={i === lastIndex}
         />
       ))}
 
@@ -374,15 +383,18 @@ export default function Tower({ levels, floorStates, currentFloor, onSelect, act
         // Floor 1 sits behind the base wall, right above the gatehouse, so a
         // balcony there would crash into the portal arch — its characters
         // wait on the meadow in front of the door instead.
+        // The top floor is a terrace: they stand on it, in front of the
+        // crystal, with no balcony needed.
         const onGround = activeIndex === 0
+        const onTerrace = activeIndex === lastIndex
         const r = floorRadius(activeIndex)
-        const deck = onGround ? 0.65 : activeIndex * STEP + FLOOR_HEIGHT / 2 + 1.6
-        const standR = onGround ? 13 : r + 1.3
-        const spread = onGround ? 0.26 : 0.42
+        const deck = onGround ? 0.65 : onTerrace ? deckY : activeIndex * STEP + FLOOR_HEIGHT / 2 + 1.6
+        const standR = onGround ? 13 : onTerrace ? r - 2.3 : r + 1.3
+        const spread = onGround ? 0.26 : onTerrace ? 0.6 : 0.42
         const spot = (a) => [Math.sin(a) * standR, deck, Math.cos(a) * standR]
         return (
           <>
-            {!onGround && <Balcony y={deck} r={r} />}
+            {!onGround && !onTerrace && <Balcony y={deck} r={r} />}
             <Wizard position={spot(spread)} />
             {activeProfile && <PlayerAvatar3D profile={activeProfile} position={spot(-spread)} />}
           </>
@@ -413,7 +425,7 @@ export default function Tower({ levels, floorStates, currentFloor, onSelect, act
         />
       ))}
 
-      <Crystal y={topY} baseRadius={topRadius} />
+      <Crystal y={deckY} />
     </group>
   )
 }

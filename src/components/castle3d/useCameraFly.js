@@ -9,7 +9,7 @@ import * as THREE from 'three'
  * `distance` comes from the aspect-aware framing, so rotating the device also
  * triggers a flight and the tower re-frames itself for the new orientation.
  */
-export default function useCameraFly({ targetY, controlsRef, distance = 26, paused = false }) {
+export default function useCameraFly({ targetY, controlsRef, distance = 26, lift = 4, paused = false }) {
   const { camera } = useThree()
   const desired = useRef(new THREE.Vector3())
   const lookAt = useRef(new THREE.Vector3())
@@ -31,7 +31,7 @@ export default function useCameraFly({ targetY, controlsRef, distance = 26, paus
 
   useFrame((_, delta) => {
     if (paused || !flying.current) return
-    desired.current.set(0, targetY + 4, distance)
+    desired.current.set(0, targetY + lift, distance)
     lookAt.current.set(0, targetY, 0)
     const k = Math.min(1, delta * 2.5)
     camera.position.lerp(desired.current, k)

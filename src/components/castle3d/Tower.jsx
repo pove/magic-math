@@ -224,57 +224,73 @@ function Crystal({ y }) {
 }
 
 /**
- * Stone balcony jutting from the front of the active floor, with a corbel
- * underneath and a balustrade. `y` is the deck surface (where the
- * characters' feet go), `r` the floor's radius. Kept narrow enough to
- * clear the corner turrets on the lower floors.
+ * Wall-walk ringing the whole keep at the foot of the active floor — it sits
+ * on the battlements of the floor below, with a corbel underneath and a
+ * balustrade all the way round. `y` is the deck surface (where the
+ * characters' feet go), `r` the floor's radius, `outer` the walk's outer
+ * edge. On the lower floors it runs into the corner turrets, like a real
+ * castle's wall-walk.
  */
-const BALCONY_ARC = 1.3 // radians of wall the balcony spans, centred on +Z
-const BALCONY_POSTS = 9
-function Balcony({ y, r }) {
-  const outer = r + 2.6
+const DECK_THICK = 0.4
+function Balcony({ y, r, outer }) {
+  const inner = r - 0.3 // tucked into the wall
   const posts = useRef()
-  // Its own materials: the shared trim stone is scaled for small merlons and
-  // smeared into stripes when stretched round this long arc.
+  const postCount = Math.round((Math.PI * 2 * (outer - 0.15)) / 0.9)
+  const circ = Math.PI * 2 * outer
+  const repeatX = Math.max(1, Math.round(circ / 5.1))
+  // Paving with UVs that follow the ring (a cylinder's cap maps a flat
+  // square onto it, which smeared the stone into streaks)
+  const deckGeo = useMemo(() => {
+    const g = new THREE.RingGeometry(inner, outer, 128, 2)
+    const p = g.attributes.position
+    const uv = g.attributes.uv
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i)
+      const yy = p.getY(i)
+      const a = (i % 129) / 128
+      uv.setXY(i, a * repeatX * 2, (Math.hypot(x, yy) - inner) / 1.7)
+    }
+    return g
+  }, [inner, outer, repeatX])
   const mats = useMemo(() => {
-    const arcLength = outer * BALCONY_ARC
-    const side = stoneTextures(Math.max(1, Math.round(arcLength / 5.1)), 0.8 / 3.4)
-    const corbel = stoneTextures(Math.max(1, Math.round(arcLength / 5.1)), 0.6 / 3.4)
+    const paving = stoneTextures(1, 1)
+    const side = stoneTextures(repeatX, DECK_THICK / 3.4)
+    const corbel = stoneTextures(repeatX, 0.6 / 3.4)
     return {
-      deck: new THREE.MeshStandardMaterial({ ...side, color: '#bdb5d6', roughness: 1 }),
+      deck: new THREE.MeshStandardMaterial({ ...paving, color: '#c4bcdb', roughness: 1 }),
+      side: new THREE.MeshStandardMaterial({ ...side, color: '#bdb5d6', roughness: 1 }),
       corbel: new THREE.MeshStandardMaterial({ ...corbel, color: '#8f88ab', roughness: 1 }),
       rail: new THREE.MeshStandardMaterial({ color: '#9a92b8', roughness: 0.85 }),
     }
-  }, [outer])
+  }, [repeatX])
   useLayoutEffect(() => {
     const dummy = new THREE.Object3D()
-    for (let i = 0; i < BALCONY_POSTS; i++) {
-      const a = -BALCONY_ARC / 2 + 0.05 + (i / (BALCONY_POSTS - 1)) * (BALCONY_ARC - 0.1)
-      dummy.position.set(Math.sin(a) * (outer - 0.2), y + 0.36, Math.cos(a) * (outer - 0.2))
+    for (let i = 0; i < postCount; i++) {
+      const a = (i / postCount) * Math.PI * 2
+      dummy.position.set(Math.sin(a) * (outer - 0.15), y + 0.36, Math.cos(a) * (outer - 0.15))
       dummy.updateMatrix()
       posts.current.setMatrixAt(i, dummy.matrix)
     }
     posts.current.instanceMatrix.needsUpdate = true
-  }, [y, outer])
-  const start = -BALCONY_ARC / 2
+  }, [y, outer, postCount])
   return (
     <group>
-      {/* Deck slab */}
-      <mesh position={[0, y - 0.4, 0]} material={mats.deck} castShadow receiveShadow>
-        <cylinderGeometry args={[outer, outer, 0.8, 32, 1, false, start, BALCONY_ARC]} />
+      {/* Paving */}
+      <mesh geometry={deckGeo} material={mats.deck} position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow />
+      {/* Outer edge of the slab */}
+      <mesh position={[0, y - DECK_THICK / 2, 0]} material={mats.side} castShadow receiveShadow>
+        <cylinderGeometry args={[outer, outer, DECK_THICK, 96, 1, true]} />
       </mesh>
       {/* Corbel tapering back into the wall */}
-      <mesh position={[0, y - 1.1, 0]} material={mats.corbel} castShadow receiveShadow>
-        <cylinderGeometry args={[outer, r - 0.2, 0.6, 32, 1, false, start, BALCONY_ARC]} />
+      <mesh position={[0, y - DECK_THICK - 0.3, 0]} material={mats.corbel} castShadow receiveShadow>
+        <cylinderGeometry args={[outer, r - 0.2, 0.6, 96, 1, true]} />
       </mesh>
       {/* Balustrade: posts + top rail */}
-      <instancedMesh ref={posts} args={[undefined, mats.rail, BALCONY_POSTS]} castShadow>
+      <instancedMesh key={postCount} ref={posts} args={[undefined, mats.rail, postCount]} castShadow>
         <cylinderGeometry args={[0.07, 0.09, 0.72, 8]} />
       </instancedMesh>
-      {/* Torus arc lies in XY from +X; spin it so the arc starts at `start`
-          (measured from +Z), then lay it flat */}
-      <mesh position={[0, y + 0.76, 0]} rotation={[-Math.PI / 2, 0, start - Math.PI / 2]} material={mats.rail} castShadow>
-        <torusGeometry args={[outer - 0.2, 0.08, 6, 32, BALCONY_ARC]} />
+      <mesh position={[0, y + 0.76, 0]} rotation={[-Math.PI / 2, 0, 0]} material={mats.rail} castShadow>
+        <torusGeometry args={[outer - 0.15, 0.08, 6, 128]} />
       </mesh>
     </group>
   )
@@ -388,13 +404,17 @@ export default function Tower({ levels, floorStates, currentFloor, onSelect, act
         const onGround = activeIndex === 0
         const onTerrace = activeIndex === lastIndex
         const r = floorRadius(activeIndex)
-        const deck = onGround ? 0.65 : onTerrace ? deckY : activeIndex * STEP + FLOOR_HEIGHT / 2 + 1.6
-        const standR = onGround ? 13 : onTerrace ? r - 2.3 : r + 1.3
+        // Elsewhere the wall-walk runs round the foot of the floor, on the
+        // battlements of the floor below. Floor 2's stays inside the base
+        // wall's own battlements.
+        const outer = activeIndex === 1 ? 9.2 : r + 2.2
+        const deck = onGround ? 0.65 : onTerrace ? deckY : activeIndex * STEP - FLOOR_HEIGHT / 2 + 0.75
+        const standR = onGround ? 13 : onTerrace ? r - 2.3 : outer - 1
         const spread = onGround ? 0.26 : onTerrace ? 0.6 : 0.42
         const spot = (a) => [Math.sin(a) * standR, deck, Math.cos(a) * standR]
         return (
           <>
-            {!onGround && !onTerrace && <Balcony y={deck} r={r} />}
+            {!onGround && !onTerrace && <Balcony y={deck} r={r} outer={outer} />}
             <Wizard position={spot(spread)} />
             {activeProfile && <PlayerAvatar3D profile={activeProfile} position={spot(-spread)} />}
           </>

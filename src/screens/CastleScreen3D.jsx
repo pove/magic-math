@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { OrbitControls, Environment, Lightformer } from '@react-three/drei'
+import * as THREE from 'three'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../context/GameContext'
@@ -9,7 +10,9 @@ import { getDefaultCharacter3dId } from '../data/characters3d'
 import { getFloorStatus } from '../engine/floorConfig'
 import { DEFAULT_LIVES } from '../engine/gameConfig'
 import Tower, { FLOOR_HEIGHT, FLOOR_GAP } from '../components/castle3d/Tower'
-import SkyDome from '../components/castle3d/SkyDome'
+import SkyDome, { MOON_DIR } from '../components/castle3d/SkyDome'
+import PostFX from '../components/three/PostFX'
+import { QualityProvider, useQuality } from '../components/three/quality'
 import MagicParticles from '../components/castle3d/MagicParticles'
 import Ground from '../components/castle3d/Ground'
 import useCameraFly from '../components/castle3d/useCameraFly'
@@ -17,6 +20,8 @@ import { framingForAspect, WIDE_FRAMING } from '../components/castle3d/framing'
 import ViewModeToggle from '../components/ViewModeToggle'
 import ModeToggle from '../components/ModeToggle'
 import { ErrorBoundary, useCanvasWatchdog } from '../components/CrashOverlay'
+
+const MIN_CAMERA_Y = 3
 
 function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile }) {
   const controlsRef = useRef()
@@ -41,12 +46,21 @@ function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile
 
   useCameraFly({ targetY: focusY, controlsRef, distance })
 
+  // Never let the orbit dip below the meadow: on the lower floors the
+  // target sits near ground level, so a fixed max polar angle let the camera
+  // slide under the grass and see through the island. Cap the angle so the
+  // camera's height stays above MIN_CAMERA_Y for the current target/zoom.
+  useFrame(() => {
+    const c = controlsRef.current
+    if (!c) return
+    const d = camera.position.distanceTo(c.target)
+    const floorLimit = Math.acos(THREE.MathUtils.clamp((MIN_CAMERA_Y - c.target.y) / Math.max(d, 0.001), -1, 1))
+    c.maxPolarAngle = Math.min(Math.PI * 0.52, floorLimit)
+  })
+
   return (
     <>
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[20, 60, 30]} intensity={1.8} color="#e9d5ff" />
-      <directionalLight position={[-30, 20, -20]} intensity={0.9} color="#93c5fd" />
-      <hemisphereLight args={['#8b7fd4', '#2a2350', 1.3]} />
+      <CastleLights />
 
       <SkyDome />
       <Ground />
@@ -61,6 +75,59 @@ function Scene({ floorStates, currentFloor, onSelectFloor, focusY, activeProfile
         minPolarAngle={Math.PI * 0.15}
         maxPolarAngle={Math.PI * 0.52}
       />
+
+      <PostFX />
+    </>
+  )
+}
+
+/**
+ * Night lighting: a cool key "moonlight" from the front-left that casts the
+ * soft shadows, a lavender rim from the real moon behind the castle to
+ * outline the silhouette, a low sky/ground fill, and a tiny baked
+ * environment (no downloads) so metal and glazed roofs pick up reflections.
+ */
+function CastleLights() {
+  const q = useQuality()
+  const key = useRef()
+  const target = useMemo(() => {
+    const o = new THREE.Object3D()
+    o.position.set(0, 30, 0)
+    return o
+  }, [])
+
+  useEffect(() => {
+    if (key.current) key.current.target = target
+  }, [target])
+
+  return (
+    <>
+      <primitive object={target} />
+      <ambientLight intensity={0.12} color="#8b7fd4" />
+      <hemisphereLight args={['#6f6ab8', '#1a1030', 0.9]} />
+      <directionalLight
+        ref={key}
+        position={[-55, 95, 70]}
+        intensity={2.6}
+        color="#d6dcff"
+        castShadow={q.shadows}
+        shadow-mapSize={[q.shadowMapSize, q.shadowMapSize]}
+        shadow-camera-left={-48}
+        shadow-camera-right={48}
+        shadow-camera-top={70}
+        shadow-camera-bottom={-50}
+        shadow-camera-near={10}
+        shadow-camera-far={260}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.05}
+      />
+      <directionalLight position={MOON_DIR.clone().multiplyScalar(100).toArray()} intensity={1.8} color="#b9a6ff" />
+      <Environment resolution={128} frames={1} environmentIntensity={0.45}>
+        <Lightformer form="rect" intensity={2} color="#8b7fd4" position={[0, 5, -9]} scale={[20, 6, 1]} />
+        <Lightformer form="rect" intensity={1.2} color="#67e8f9" position={[-9, 2, 0]} rotation-y={Math.PI / 2} scale={[10, 4, 1]} />
+        <Lightformer form="circle" intensity={3} color="#fbbf24" position={[6, 1, 4]} scale={2} />
+        <Lightformer form="rect" intensity={0.6} color="#1e1b4b" position={[0, -5, 0]} rotation-x={Math.PI / 2} scale={[30, 30, 1]} />
+      </Environment>
     </>
   )
 }
@@ -129,19 +196,24 @@ export default function CastleScreen3D({ viewMode }) {
   return (
     <div className="fixed inset-0 bg-[#0b0620] overflow-hidden select-none">
       <ErrorBoundary compact>
+        {/* `flat`: no renderer tone mapping — PostFX tone-maps after bloom */}
         <Canvas
-          camera={{ fov: 55, position: [0, 4, 26] }}
+          camera={{ fov: 55, position: [0, 4, 26], near: 0.5, far: 1500 }}
           onCreated={({ gl }) => watchGl(gl)}
-          dpr={[1, 2]}
-          gl={{ toneMappingExposure: 1.35 }}
+          dpr={1}
+          shadows
+          flat
+          gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
         >
-          <Scene
-            floorStates={floorStates}
-            currentFloor={currentFloor}
-            onSelectFloor={handleSelect}
-            focusY={focusY}
-            activeProfile={activeProfile}
-          />
+          <QualityProvider>
+            <Scene
+              floorStates={floorStates}
+              currentFloor={currentFloor}
+              onSelectFloor={handleSelect}
+              focusY={focusY}
+              activeProfile={activeProfile}
+            />
+          </QualityProvider>
         </Canvas>
       </ErrorBoundary>
 

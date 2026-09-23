@@ -15,6 +15,8 @@ import CouncilHallRoom from './roomscene3d/CouncilHallRoom'
 import CloudBridgeRoom from './roomscene3d/CloudBridgeRoom'
 import WizardTowerRoom from './roomscene3d/WizardTowerRoom'
 import { AmbientOrbs, MagicDust } from './roomscene3d/kit'
+import PostFX from './three/PostFX'
+import { QualityProvider } from './three/quality'
 import { FLOOR_INTRO, ROOM_INTRO } from '../engine/roomAnimations'
 import { getRoomVariant } from '../engine/roomVariants'
 
@@ -143,19 +145,25 @@ export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', 
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
         <ErrorBoundary compact>
+          {/* `flat`: no renderer tone mapping — PostFX tone-maps after bloom */}
           <Canvas
             camera={{ fov: 52, position: initialPosition }}
-            dpr={[1, 2]}
+            dpr={1}
+            flat
+            gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
             onCreated={({ camera, gl }) => { camera.lookAt(...LOOK_AT); watchGl(gl) }}
           >
-            <ambientLight intensity={1.1} />
-            <directionalLight position={[3, 6, 10]} intensity={0.9} color="#c4b5fd" />
-            <hemisphereLight args={['#8b7fd4', '#1a0533', 1.1]} />
-            <CameraRig durationMs={durationMs} shot={shot}>
-              <Scene accent={variant.accent} />
-              <AmbientOrbs accent={variant.accent} seed={floor * 97 + room * 13} />
-              <MagicDust color={variant.accent} seed={floor * 53 + room * 7} />
-            </CameraRig>
+            <QualityProvider>
+              <ambientLight intensity={1.1} />
+              <directionalLight position={[3, 6, 10]} intensity={0.9} color="#c4b5fd" />
+              <hemisphereLight args={['#8b7fd4', '#1a0533', 1.1]} />
+              <CameraRig durationMs={durationMs} shot={shot}>
+                <Scene accent={variant.accent} />
+                <AmbientOrbs accent={variant.accent} seed={floor * 97 + room * 13} />
+                <MagicDust color={variant.accent} seed={floor * 53 + room * 7} />
+              </CameraRig>
+              <PostFX bloom={1} bloomThreshold={0.8} aoRadius={1.6} aoIntensity={1.6} vignette={0.45} />
+            </QualityProvider>
           </Canvas>
         </ErrorBoundary>
       </motion.div>

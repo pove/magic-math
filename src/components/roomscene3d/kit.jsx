@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import particleFire from 'three-particle-fire'
+import GlowParticles from '../three/GlowParticles'
+import { stoneTextures, glowTexture } from '../three/textures'
 
 /**
  * Shared building blocks for the per-floor 3D room scenes. Keeping these
@@ -43,6 +45,22 @@ function Flame({ position, radius = 0.13, height = 0.6, particleCount = 50, colo
   })
 
   return <primitive object={points} position={position} />
+}
+
+// Soft additive halo around a flame — with the bloom pass this reads as warm
+// light blooming off the fire rather than a flat sprite.
+function FlameHalo({ position, scale = 2, color = '#ff9a3c' }) {
+  const ref = useRef()
+  const map = glowTexture()
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+    if (ref.current) ref.current.material.opacity = 0.42 + Math.sin(t * 9 + position[1] * 5) * 0.06 + Math.sin(t * 14.3) * 0.04
+  })
+  return (
+    <sprite ref={ref} position={position} scale={[scale, scale, 1]}>
+      <spriteMaterial map={map} color={color} transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} />
+    </sprite>
+  )
 }
 
 // Deterministic pseudo-random, same algorithm as SceneBackground.jsx's, so
@@ -96,6 +114,7 @@ export function Torch({ position, scale = 1 }) {
         <meshStandardMaterial color="#78350f" roughness={0.8} />
       </mesh>
       <Flame position={[0, 1.02, 0]} radius={0.13} height={0.6} particleCount={50} color="#f97316" size={0.55} />
+      <FlameHalo position={[0, 1.25, 0]} scale={2.6} color="#ff9a3c" />
       <pointLight ref={light} position={[0, 1.3, 0.4]} color="#f59e0b" intensity={3.2} distance={8} />
     </group>
   )
@@ -116,6 +135,7 @@ export function Candle({ position, scale = 1 }) {
         <meshStandardMaterial color="#fef3c7" />
       </mesh>
       <Flame position={[0, 0.4, 0]} radius={0.045} height={0.18} particleCount={20} color="#fbbf24" size={0.3} />
+      <FlameHalo position={[0, 0.48, 0]} scale={1.1} color="#ffc14d" />
       <pointLight ref={light} position={[0, 0.5, 0]} color="#fbbf24" intensity={1.6} distance={4} />
     </group>
   )
@@ -183,6 +203,8 @@ export function AmbientOrbs({ accent, seed = 1, count = 6, xRange = [-8, 8], zRa
     }))
   }, [seed, count, xRange, zRange])
   const refs = useRef([])
+  // Pushed past 1.0 so the orbs bloom into soft glowing wisps
+  const hdrAccent = useMemo(() => new THREE.Color(accent).multiplyScalar(2.5), [accent])
   useFrame((state) => {
     const t = state.clock.elapsedTime
     orbs.forEach((o, i) => {
@@ -197,7 +219,7 @@ export function AmbientOrbs({ accent, seed = 1, count = 6, xRange = [-8, 8], zRa
       {orbs.map((o, i) => (
         <mesh key={i} ref={(el) => (refs.current[i] = el)} position={[o.x, o.baseY, o.z]}>
           <sphereGeometry args={[0.16, 12, 12]} />
-          <meshBasicMaterial color={accent} transparent opacity={0.5} />
+          <meshBasicMaterial color={hdrAccent} transparent opacity={0.5} />
         </mesh>
       ))}
     </group>
@@ -206,67 +228,38 @@ export function AmbientOrbs({ accent, seed = 1, count = 6, xRange = [-8, 8], zRa
 
 // Fine drifting magic dust, tinted per-room — a subtle GPU-cheap layer of
 // atmosphere shared by every floor (mounted once by RoomScene3D).
-export function MagicDust({ color = '#a78bfa', count = 90, radius = 15, height = 9, seed = 2 }) {
-  const ref = useRef()
-  const { arr, speeds } = useMemo(() => {
-    const r = mulberry32(seed)
-    const arr = new Float32Array(count * 3)
-    const speeds = new Float32Array(count)
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] = (r() - 0.5) * radius * 2
-      arr[i * 3 + 1] = r() * height
-      arr[i * 3 + 2] = -13 + r() * radius
-      speeds[i] = 0.15 + r() * 0.35
-    }
-    return { arr, speeds }
-  }, [count, radius, height, seed])
-  useFrame((state, delta) => {
-    if (!ref.current) return
-    const pos = ref.current.geometry.attributes.position
-    const t = state.clock.elapsedTime
-    for (let i = 0; i < count; i++) {
-      let y = pos.getY(i) + speeds[i] * delta
-      if (y > height) y = 0
-      pos.setY(i, y)
-      pos.setX(i, arr[i * 3] + Math.sin(t * 0.3 + i) * 0.6)
-    }
-    pos.needsUpdate = true
-  })
+// Animated entirely on the GPU and bright enough to catch the bloom pass.
+export function MagicDust({ color = '#a78bfa', count = 110, height = 9, seed = 2 }) {
   return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={arr} itemSize={3} />
-      </bufferGeometry>
-      <pointsMaterial size={0.09} color={color} transparent opacity={0.55} sizeAttenuation depthWrite={false} />
-    </points>
+    <GlowParticles
+      count={count}
+      radius={[0.5, 13]}
+      height={[0, height]}
+      colors={[color, '#fde68a', '#ffffff']}
+      size={0.11}
+      rise={0.3}
+      wander={0.6}
+      brightness={2.2}
+      seed={seed}
+      position={[0, 0, -6]}
+    />
   )
 }
 
-// Stone floor: a solid base plane plus a scattered grid of slightly lighter
-// tiles for texture, matching every 2D scene's FloorStone treatment.
+// Stone floor: procedural flagstones with real relief (normal map) and a
+// slightly polished finish, so torches and glowing props leave soft
+// reflections on it. Tinted by the room's own tile colour so each floor
+// keeps the palette of its 2D SceneBackground counterpart.
 export function StoneFloor({ baseColor = '#3f3147', tileColor = '#4c3d5c', width = 40, depth = 32, z = 4 }) {
-  const tiles = useMemo(() => {
-    const t = []
-    for (let row = 0; row < 6; row++) {
-      for (let col = 0; col < 8; col++) {
-        t.push([-14 + col * 4 + (row % 2 ? 2 : 0), -6 + row * 3.4])
-      }
-    }
-    return t
-  }, [])
+  const tex = useMemo(() => stoneTextures(width / 5, depth / 3.2), [width, depth])
+  // The stone texture averages ~0.55, so lift the tint to land near the
+  // room's original tile colour instead of darkening it.
+  const color = useMemo(() => new THREE.Color(tileColor).lerp(new THREE.Color(baseColor), 0.35).multiplyScalar(2.6), [baseColor, tileColor])
   return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, z]}>
-        <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial color={baseColor} roughness={1} />
-      </mesh>
-      {tiles.map(([x, tz], i) => (
-        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.01, tz]}>
-          <planeGeometry args={[3.4, 2.6]} />
-          <meshStandardMaterial color={tileColor} roughness={1} transparent opacity={0.5} />
-        </mesh>
-      ))}
-    </group>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, z]}>
+      <planeGeometry args={[width, depth]} />
+      <meshStandardMaterial {...tex} color={color} roughness={0.75} envMapIntensity={0.6} />
+    </mesh>
   )
 }
 

@@ -137,13 +137,19 @@ export default function RoomScreen() {
   // leaving: the character is flying off happily before we navigate away
   const [entering, setEntering] = useState(true)
   const [leaving, setLeaving] = useState(false)
+  // In a 3D room the characters live inside the scene: this slot is the
+  // empty box the layout keeps for them, which the scene frames them onto.
+  const actorSlotRef = useRef(null)
+  const [actorPhase, setActorPhase] = useState('waiting')
 
   // Room entrance choreography: play the arrival chime when the "Entrando
   // en..." title pops in, and re-enable input once the question has faded in.
   useEffect(() => {
     const titleTimer = setTimeout(() => sfx.magic(), introCfg.titleDelayMs)
     const readyTimer = setTimeout(() => setEntering(false), contentDelayMs + introCfg.contentFadeMs)
-    return () => { clearTimeout(titleTimer); clearTimeout(readyTimer) }
+    const walkTimer = setTimeout(() => setActorPhase('entering'), charDelayMs)
+    const standTimer = setTimeout(() => setActorPhase((p) => (p === 'entering' ? 'playing' : p)), charDelayMs + introCfg.charDurationMs)
+    return () => { clearTimeout(titleTimer); clearTimeout(readyTimer); clearTimeout(walkTimer); clearTimeout(standTimer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -236,6 +242,7 @@ export default function RoomScreen() {
   // bar) is visible for a beat before the screen actually changes.
   const leaveThen = useCallback((action) => {
     setLeaving(true)
+    setActorPhase('leaving')
     sfx.whoosh()
     setParticles({ type: 'magic', key: Date.now() + 1 })
     setTimeout(action, ROOM_LEAVE.navigateDelayMs)
@@ -319,7 +326,23 @@ export default function RoomScreen() {
   return (
     <div className="h-dvh w-full overflow-hidden">
       <Suspense fallback={<div className="fixed inset-0 bg-[#1a0533]" />}>
-      <SceneComponent floor={floor} room={room} introLevel={isNewFloor ? 'floor' : 'room'}>
+      <SceneComponent
+        floor={floor}
+        room={room}
+        introLevel={isNewFloor ? 'floor' : 'room'}
+        {...(use3DRoom && {
+          actors: {
+            anchorRef: actorSlotRef,
+            profile: activeProfile,
+            phase: actorPhase,
+            enterMs: introCfg.charDurationMs,
+            leaveMs: ROOM_LEAVE.charDurationMs,
+            action: animState,
+            questionKey: `${answered}:${question.questionText}`,
+            wizard: true,
+          },
+        })}
+      >
         {/* "Entrando en..." title card, then it fades out before the question shows */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6"
@@ -431,7 +454,11 @@ export default function RoomScreen() {
                         }
                 }
               >
-                {is3D ? (
+                {use3DRoom ? (
+                  // Empty on purpose: the player and the Mago are drawn by
+                  // the 3D room itself, framed onto this box.
+                  <div ref={actorSlotRef} style={{ width: Math.round(character3dSize * 1.5), height: character3dSize, maxWidth: 'calc(100vw - 24px)' }} />
+                ) : is3D ? (
                   <Suspense fallback={<div style={{ width: character3dSize, height: character3dSize }} />}>
                     <CharacterStage3D
                       profile={activeProfile}
@@ -451,7 +478,7 @@ export default function RoomScreen() {
                 )}
               </motion.div>
 
-              {isBoss && (
+              {isBoss && !use3DRoom && (
                 <motion.div
                   initial={{ opacity: 0, x: 100, scale: 0.7, rotate: 8 }}
                   animate={

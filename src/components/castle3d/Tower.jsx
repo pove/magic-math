@@ -4,8 +4,9 @@ import * as THREE from 'three'
 import FloorNode, { FLOOR_HEIGHT, FLOOR_GAP } from './FloorNode'
 import Wizard from './Wizard'
 import PlayerAvatar3D from './PlayerAvatar3D'
-import { stoneTextures, shingleTextures, woodTextures, glowTexture } from '../three/textures'
+import { stoneTextures, shingleTextures, glowTexture } from '../three/textures'
 import { windowGlassGeometry } from './windowGeometry'
+import { Door } from '../roomscene3d/props'
 
 export { FLOOR_HEIGHT, FLOOR_GAP }
 
@@ -272,19 +273,7 @@ function Balcony({ y, r }) {
 }
 
 /** Arched wooden door set in a stone portal, lanterns either side. */
-function Entrance({ trimMat }) {
-  const wood = useMemo(() => woodTextures(0.32, 0.3), [])
-  const doorGeo = useMemo(() => {
-    const s = new THREE.Shape()
-    const w = 3.0
-    const h = 3.6
-    s.moveTo(-w / 2, -h / 2)
-    s.lineTo(w / 2, -h / 2)
-    s.lineTo(w / 2, h / 2 - w / 2)
-    s.absarc(0, h / 2 - w / 2, w / 2, 0, Math.PI, false)
-    s.lineTo(-w / 2, -h / 2)
-    return new THREE.ExtrudeGeometry(s, { depth: 0.18, bevelEnabled: false, curveSegments: 24 })
-  }, [])
+function Entrance({ trimMat, openRef }) {
   const portalGeo = useMemo(() => {
     const outer = new THREE.Shape()
     const w = 4.6
@@ -314,20 +303,9 @@ function Entrance({ trimMat }) {
     // sill meets the meadow (y ≈ 0.65) instead of sinking into it.
     <group position={[0, 2.9, 9.3]}>
       <mesh geometry={portalGeo} material={trimMat} castShadow receiveShadow />
-      <mesh geometry={doorGeo} position={[0, -0.45, 0.75]} castShadow receiveShadow>
-        <meshStandardMaterial {...wood} roughness={0.8} />
-      </mesh>
-      {/* Iron straps and ring handle */}
-      {[-0.9, 0.6].map((yy) => (
-        <mesh key={yy} position={[0, yy - 0.45, 0.96]}>
-          <boxGeometry args={[2.9, 0.14, 0.04]} />
-          <meshStandardMaterial color="#2a2533" metalness={0.8} roughness={0.4} />
-        </mesh>
-      ))}
-      <mesh position={[0.7, -0.6, 0.99]}>
-        <torusGeometry args={[0.18, 0.04, 8, 20]} />
-        <meshStandardMaterial color="#d4b35a" metalness={0.9} roughness={0.3} />
-      </mesh>
+      {/* Two-leaf door filling the portal's arch; swings open (inwards,
+          onto warm light) when the entrance room's choreography asks */}
+      <Door position={[0, -2.45, 0.72]} width={3.2} height={3.9} openRef={openRef} frameless />
       {/* Wall lanterns */}
       {[-2.9, 2.9].map((x) => (
         <group key={x} position={[x, 0.3, 1.35]}>
@@ -353,7 +331,7 @@ function Entrance({ trimMat }) {
  * The castle: main keep with floors, corner turrets, battlemented base wall
  * with a grand entrance, and a magical crystal spire on top.
  */
-export default function Tower({ levels, floorStates, currentFloor, onSelect, activeProfile }) {
+export default function Tower({ levels, floorStates, currentFloor, onSelect, activeProfile, showLabels = true, entranceOpenRef }) {
   const topY = levels.length * STEP
   const activeIndex = levels.findIndex((l) => l.floor === currentFloor)
   // Flanking turrets read as turrets only if they're clearly shorter (and
@@ -386,6 +364,7 @@ export default function Tower({ levels, floorStates, currentFloor, onSelect, act
           status={floorStates[level.floor] || 'locked'}
           onSelect={onSelect}
           r={floorRadius(i)}
+          showLabels={showLabels}
         />
       ))}
 
@@ -419,7 +398,7 @@ export default function Tower({ levels, floorStates, currentFloor, onSelect, act
       </mesh>
       <Merlons count={22} radius={9.55} y={3.95} size={[1.3, 0.9, 0.7]} material={mats.trim} />
 
-      <Entrance trimMat={mats.trim} />
+      <Entrance trimMat={mats.trim} openRef={entranceOpenRef} />
 
       {/* Four corner turrets */}
       {[[8.2, 8.2], [-8.2, 8.2], [8.2, -8.2], [-8.2, -8.2]].map(([x, z], i) => (

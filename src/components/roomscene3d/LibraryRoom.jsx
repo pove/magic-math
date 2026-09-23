@@ -1,7 +1,8 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { Torch, StoneFloor, Column } from './kit'
+import { Torch, Column } from './kit'
+import { WoodFloor } from './shell'
 
 /**
  * 3D take on floor 2, "La Biblioteca Mágica": warm wood-and-candlelight
@@ -158,7 +159,7 @@ export default function LibraryRoom({ accent = '#f59e0b' }) {
       <pointLight position={[0, 5, 0]} color={accent} intensity={0.55} distance={22} />
       <pointLight position={[0, 4.5, -9]} color="#fde68a" intensity={0.9} distance={14} />
 
-      <StoneFloor />
+      <WoodFloor />
     </group>
   )
 }

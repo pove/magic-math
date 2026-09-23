@@ -17,6 +17,8 @@ import CloudBridgeRoom from './roomscene3d/CloudBridgeRoom'
 import WizardTowerRoom from './roomscene3d/WizardTowerRoom'
 import { AmbientOrbs, MagicDust } from './roomscene3d/kit'
 import RoomActors from './roomscene3d/RoomActors'
+import RoomShell, { ROOM_THEMES } from './roomscene3d/shell'
+import { RoomDecor } from './roomscene3d/props'
 import { ROOM_FOV, DEFAULT_FRAMING, computeFraming, measureAnchor } from './roomscene3d/stage'
 import PostFX from './three/PostFX'
 import { QualityProvider } from './three/quality'
@@ -182,6 +184,8 @@ function FovSync() {
 export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', actors, children }) {
   const watchGl = useCanvasWatchdog()
   const containerRef = useRef()
+  // How far open the back-wall door is (0..1), driven by the entrance choreography
+  const doorOpenRef = useRef(0)
   const Scene = SCENES_3D[floor] || CastleEntranceRoom
   const durationMs = introLevel === 'floor' ? FLOOR_INTRO.bgDurationMs : introLevel === 'room' ? ROOM_INTRO.bgDurationMs : 0
   // A fresh random establishing shot each time this room is entered — see
@@ -216,13 +220,17 @@ export default function RoomScene3D({ floor = 1, room = 1, introLevel = 'room', 
           >
             <QualityProvider>
               <FovSync />
-              <RoomLights variant={variant} />
+              {/* The daytime cloud bridge brings its own sunlight */}
+              {floor !== 11 && <RoomLights variant={variant} />}
               <CameraRig durationMs={durationMs} shot={shot} framingRef={framingRef} />
-              <Scene accent={variant.accent} />
+              {ROOM_THEMES[floor] && <RoomShell theme={ROOM_THEMES[floor]} />}
+              <RoomDecor theme={ROOM_THEMES[floor]} doorOpenRef={doorOpenRef} />
+              <Scene accent={variant.accent} doorOpenRef={doorOpenRef} />
               <AmbientOrbs accent={variant.accent} seed={floor * 97 + room * 13} />
               <MagicDust color={variant.accent} seed={floor * 53 + room * 7} />
               {actors && <RoomActors stage={framing.stage} {...actors} />}
-              <PostFX bloom={1} bloomThreshold={0.8} aoRadius={1.6} aoIntensity={1.6} vignette={0.45} />
+              {/* The daytime cloud bridge is bright everywhere: only its sun and rainbow should bloom */}
+              <PostFX bloom={1} bloomThreshold={floor === 11 ? 1.6 : 0.8} aoRadius={1.6} aoIntensity={1.6} vignette={0.45} />
             </QualityProvider>
           </Canvas>
         </ErrorBoundary>

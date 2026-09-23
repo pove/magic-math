@@ -33,9 +33,11 @@ const ANIM = {
 }
 
 // Where each actor stands relative to the stage spot
-const PLAYER_OFFSET = [-0.35, 0, 0.2]
-const COMPANION_OFFSET = [-1.15, 0, 0.55]
-const WIZARD_OFFSET = [0.95, 0, -0.95]
+const PLAYER_OFFSET = [-0.6, 0, 0.15]
+// The companion stands between the player and the Mago, a little in front
+// (it's small), so the trio reads as one tight group inside the slot.
+const COMPANION_OFFSET = [0.15, 0, 0.6]
+const WIZARD_OFFSET = [0.95, 0, -0.55]
 const WIZARD_SCALE = 0.88
 // Entrance/exit paths, relative to where the player ends up standing
 const ENTER_FROM = [-3.2, 0, -2.4]
@@ -191,7 +193,10 @@ export default function RoomActors({
   const phaseStart = useRef(null)
   const lastPhase = useRef(phase)
 
-  const standAt = useMemo(() => [stage[0] + PLAYER_OFFSET[0], stage[1], stage[2] + PLAYER_OFFSET[2]], [stage])
+  // Without a companion to fill the space between them, the player stands
+  // closer to the Mago
+  const playerX = companion ? PLAYER_OFFSET[0] : -0.2
+  const standAt = useMemo(() => [stage[0] + playerX, stage[1], stage[2] + PLAYER_OFFSET[2]], [stage, playerX])
   const wizardAt = useMemo(() => [stage[0] + WIZARD_OFFSET[0], stage[1], stage[2] + WIZARD_OFFSET[2]], [stage])
 
   // --- reactions: spell bolt + sparkle burst on every correct answer -------
@@ -292,7 +297,7 @@ export default function RoomActors({
         <Suspense fallback={null}>
           <GltfCharacter key={character.file} src={character.file} animationName={playerAnim} targetHeight={character.height} />
           {companion && (
-            <group position={[COMPANION_OFFSET[0] - PLAYER_OFFSET[0], 0, COMPANION_OFFSET[2] - PLAYER_OFFSET[2]]}>
+            <group position={[COMPANION_OFFSET[0] - playerX, 0, COMPANION_OFFSET[2] - PLAYER_OFFSET[2]]}>
               <GltfCharacter key={companion.file} src={companion.file} animationName={companionAnim} targetHeight={companion.height} rotationY={0.4} />
               <BlobShadow size={0.8} opacity={0.35} />
             </group>

@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { stoneTextures, glowTexture } from '../three/textures'
 import { useQuality } from '../three/quality'
+import GrassField from '../three/GrassField'
 import { HORIZON } from './SkyDome'
 
 /**
@@ -102,6 +103,10 @@ export function terrainHeight(x, z) {
   h += hills * smoothstep(12.5, 21, r)
   const onPath = 1 - smoothstep(1.2, 3.2, distToPath(x, z))
   h = h * (1 - onPath * 0.8) + BASE_Y * onPath * 0.8
+  // Level lawn in front of the gate (where the entrance room's characters
+  // stand, and where the overview camera looks at the door from)
+  const front = smoothstep(0, 4, z - 9) * (1 - smoothstep(6, 10, Math.abs(x)))
+  h = h * (1 - front) + BASE_Y * front
   h -= smoothstep(R - 5, R, r) ** 2 * 2.2
   return h
 }
@@ -214,85 +219,21 @@ function IslandRoot() {
   )
 }
 
-/** Wind-blown grass blades — one instanced draw call, swaying in the shader. */
+/** Wind-blown meadow grass, avoiding the path and the castle walls. */
 function Grass() {
   const q = useQuality()
-  const count = Math.round(9000 * q.grass)
-  const mesh = useRef()
-
-  const { geometry, material } = useMemo(() => {
-    const H = 0.42
-    const geo = new THREE.PlaneGeometry(0.09, H, 1, 4)
-    geo.translate(0, H / 2, 0)
-    const p = geo.attributes.position
-    const col = new Float32Array(p.count * 3)
-    for (let i = 0; i < p.count; i++) {
-      const y = p.getY(i) / H
-      p.setX(i, p.getX(i) * (1 - y * 0.92)) // taper to a point
-      const k = 0.7 + y * 0.5 // dark at the root, light at the tip
-      col.set([k, k, k], i * 3)
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3))
-    // Normals pointing up so blades light like the ground they grow from
-    const n = geo.attributes.normal
-    for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0)
-
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.9 })
-    mat.userData.uTime = { value: 0 }
-    mat.onBeforeCompile = (shader) => {
-      shader.uniforms.uTime = mat.userData.uTime
-      // Double-sided materials flip the normal on back faces, which pointed
-      // half the blades' "up" normals downward and rendered them black.
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <normal_fragment_begin>',
-        THREE.ShaderChunk.normal_fragment_begin.replace('gl_FrontFacing ? 1.0 : - 1.0', '1.0')
-      )
-      shader.vertexShader = 'uniform float uTime;\n' + shader.vertexShader.replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
-         float hh = position.y / ${H.toFixed(2)};
-         vec3 root = (instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-         float gust = sin(uTime * 1.3 + root.x * 0.25 + root.z * 0.18) * 0.6 + sin(uTime * 2.9 + root.x * 0.9 - root.z * 0.6) * 0.25;
-         transformed.x += gust * hh * hh * 0.28;
-         transformed.z += gust * hh * hh * 0.12;`
-      )
-    }
-    return { geometry: geo, material: mat }
-  }, [])
-
-  useLayoutEffect(() => {
-    const r = rng(99)
-    const dummy = new THREE.Object3D()
-    const c = new THREE.Color()
-    const greens = ['#3a9a62', '#4fb572', '#358a66', '#5cb87a', '#2b8060'].map((h) => new THREE.Color(h))
-    let placed = 0
-    let guard = 0
-    while (placed < count && guard++ < count * 6) {
-      const a = r() * Math.PI * 2
-      const rad = Math.sqrt(11.5 ** 2 + r() * ((R - 2.2) ** 2 - 11.5 ** 2))
-      const x = Math.cos(a) * rad
-      const z = Math.sin(a) * rad
-      if (distToPath(x, z) < 1.6) continue
-      dummy.position.set(x, terrainHeight(x, z) - 0.02, z)
-      dummy.rotation.set((r() - 0.5) * 0.3, r() * Math.PI, (r() - 0.5) * 0.3)
-      const s = 0.6 + r() * 0.9
-      dummy.scale.set(s * 1.2, s * (0.6 + r() * 0.5), s * 1.2)
-      dummy.updateMatrix()
-      mesh.current.setMatrixAt(placed, dummy.matrix)
-      c.copy(greens[Math.floor(r() * greens.length)])
-      mesh.current.setColorAt(placed, c)
-      placed++
-    }
-    mesh.current.count = placed
-    mesh.current.instanceMatrix.needsUpdate = true
-    if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true
-  }, [count])
-
-  useFrame((state) => {
-    material.userData.uTime.value = state.clock.elapsedTime
-  })
-
-  return <instancedMesh key={count} ref={mesh} args={[geometry, material, count]} receiveShadow frustumCulled={false} />
+  const place = (r) => {
+    const a = r() * Math.PI * 2
+    const rad = Math.sqrt(11.5 ** 2 + r() * ((R - 2.2) ** 2 - 11.5 ** 2))
+    const x = Math.cos(a) * rad
+    const z = Math.sin(a) * rad
+    if (distToPath(x, z) < 1.6) return null
+    // Keep the level lawn before the gate clear: it's where the entrance
+    // room's characters stand and its camera sits
+    if (z > 16 && Math.abs(x) < 8.5) return null
+    return [x, terrainHeight(x, z), z]
+  }
+  return <GrassField count={Math.round(9000 * q.grass)} place={place} />
 }
 
 /** Little bioluminescent flowers dotted through the meadow (bloom candy). */
@@ -455,7 +396,7 @@ function Rocks() {
         const rad = 12 + r() * (R - 14)
         x = Math.cos(a) * rad
         z = Math.sin(a) * rad
-      } while (distToPath(x, z) < 2.2)
+      } while (distToPath(x, z) < 2.2 || inFrontOfCastle(x, z))
       dummy.position.set(x, terrainHeight(x, z) + 0.1, z)
       dummy.rotation.set(r(), r() * 6, r())
       dummy.scale.setScalar(0.5 + r() * 1.1)

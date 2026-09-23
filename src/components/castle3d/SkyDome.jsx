@@ -115,10 +115,10 @@ const fragmentShader = /* glsl */ `
 `
 
 /**
- * Night sky dome painted entirely in a shader — gradient, nebula, aurora,
- * twinkling stars and the moon. Zero assets, one draw call.
+ * Just the shader sky sphere (gradient, nebula, aurora, stars, moon) —
+ * reusable by any scene that wants the castle's night sky without its fog.
  */
-export default function SkyDome() {
+export function SkyShaderDome({ radius = 500 }) {
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -144,12 +144,22 @@ export default function SkyDome() {
   })
 
   return (
+    <mesh material={material} renderOrder={-1} frustumCulled={false}>
+      <sphereGeometry args={[radius, 64, 32]} />
+    </mesh>
+  )
+}
+
+/**
+ * Night sky dome painted entirely in a shader — gradient, nebula, aurora,
+ * twinkling stars and the moon. Zero assets, one draw call.
+ */
+export default function SkyDome() {
+  return (
     <>
       <color attach="background" args={['#05030f']} />
       <fogExp2 attach="fog" args={[HORIZON, 0.0065]} />
-      <mesh material={material} renderOrder={-1} frustumCulled={false}>
-        <sphereGeometry args={[500, 64, 32]} />
-      </mesh>
+      <SkyShaderDome />
     </>
   )
 }

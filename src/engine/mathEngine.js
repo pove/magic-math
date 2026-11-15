@@ -209,11 +209,11 @@ function youngPro(floor, room) {
   if (typeof base.correctAnswer === 'number' && base.questionText.includes('=')) {
     const parts = base.questionText.replace(' = ?', '').split(' ')
     if (parts.length >= 3) {
-      const c = rnd(1, 5)
-      const newOp = rnd(0, 1) === 0 ? '+' : '-'
-      let newCorrect = base.correctAnswer
-      if (newOp === '+') newCorrect += c
-      else newCorrect = Math.max(0, newCorrect - c)
+      // Solo se resta si el resultado no queda negativo.
+      const canSubtract = base.correctAnswer >= 1
+      const newOp = canSubtract && rnd(0, 1) === 1 ? '-' : '+'
+      const c = newOp === '-' ? rnd(1, Math.min(5, base.correctAnswer)) : rnd(1, 5)
+      const newCorrect = newOp === '+' ? base.correctAnswer + c : base.correctAnswer - c
       const newText = `${base.questionText.replace(' = ?', '')} ${newOp} ${c} = ?`
       const interfaceType = floor <= 8 ? '6_options' : 'keyboard'
       const wrongs = generateWrongOptions(newCorrect, interfaceType === '6_options' ? 5 : 0, 0, 120)
@@ -319,10 +319,11 @@ function olderPro(floor) {
   const tables = TABLE_BY_FLOOR[floor] || [2]
   const t1 = tables[rnd(0, tables.length - 1)]
   const m1 = rnd(1, MULTIPLIER_MAX_BY_FLOOR[floor] || 10)
-  const c = rnd(1, 10)
-  const op2 = rnd(0, 1) === 0 ? '+' : '-'
   const product = t1 * m1
-  const correct = op2 === '+' ? product + c : Math.max(0, product - c)
+  // Solo se resta si el resultado no queda negativo (c ≤ producto).
+  const op2 = rnd(0, 1) === 0 ? '+' : '-'
+  const c = op2 === '-' ? rnd(1, Math.min(10, product)) : rnd(1, 10)
+  const correct = op2 === '+' ? product + c : product - c
   return {
     questionText: `${t1} × ${m1} ${op2} ${c} = ?`,
     options: [],
@@ -336,14 +337,18 @@ function olderPro(floor) {
 function olderSuperPro(floor) {
   const tables = TABLE_BY_FLOOR[floor] || [2]
   const multiplierMax = MULTIPLIER_MAX_BY_FLOOR[floor] || 10
-  const t1 = tables[rnd(0, tables.length - 1)]
-  const m1 = rnd(1, multiplierMax)
-  const t2 = tables[rnd(0, tables.length - 1)]
-  const m2 = rnd(1, Math.min(6, multiplierMax))
+  let t1 = tables[rnd(0, tables.length - 1)]
+  let m1 = rnd(1, multiplierMax)
+  let t2 = tables[rnd(0, tables.length - 1)]
+  let m2 = rnd(1, Math.min(6, multiplierMax))
   const op = rnd(0, 1) === 0 ? '+' : '-'
+  // En la resta, el producto mayor va primero para que el resultado nunca sea negativo.
+  if (op === '-' && t1 * m1 < t2 * m2) {
+    [t1, m1, t2, m2] = [t2, m2, t1, m1]
+  }
   const p1 = t1 * m1
   const p2 = t2 * m2
-  const correct = op === '+' ? p1 + p2 : Math.max(0, p1 - p2)
+  const correct = op === '+' ? p1 + p2 : p1 - p2
   return {
     questionText: `${t1} × ${m1} ${op} ${t2} × ${m2} = ?`,
     options: [],
